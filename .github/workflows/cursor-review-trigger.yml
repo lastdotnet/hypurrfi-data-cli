@@ -1,0 +1,39 @@
+# When a PR is opened/synchronized/reopened, post "@cursor review" if one doesn't already exist.
+name: Trigger Cursor Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  trigger-cursor-review:
+    name: Post Comment
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Comment @cursor review (if not already present)
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const CURSOR_REVIEW_BODY = '@cursor review';
+            const prNumber = context.payload.pull_request.number;
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              per_page: 100
+            });
+            const alreadyHasCursorReview = comments.some(c => (c.body || '').trim() === CURSOR_REVIEW_BODY);
+            if (alreadyHasCursorReview) {
+              console.log('PR already has a "@cursor review" comment — skipping to avoid duplicate.');
+              return;
+            }
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              body: CURSOR_REVIEW_BODY
+            });
+            console.log('Posted "@cursor review" comment.');

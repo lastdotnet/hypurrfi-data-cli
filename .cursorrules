@@ -1,0 +1,77 @@
+# AI Coding Guidelines for HypurrFi Data CLI
+
+## Decimal Precision (CRITICAL)
+
+**NEVER** use `Number(value) / 10 ** decimals` for token amounts - this causes floating-point precision loss with 18-decimal tokens.
+
+### Correct Patterns
+
+**For formatting on-chain values:**
+```typescript
+import { formatUnits } from 'viem'
+
+const formatted = formatUnits(valueBigInt, decimals)
+const asNumber = Number(formatUnits(valueBigInt, decimals))
+```
+
+**For validation comparisons (e.g., balance checks):**
+```typescript
+// Keep as BigInt for precise comparison
+const amountNeededRaw = BigInt(quote.amountIn)
+const balanceRaw = parseUnits(balance, decimals)
+const hasEnough = amountNeededRaw <= balanceRaw
+```
+
+### Wrong Patterns (DO NOT USE)
+
+```typescript
+// BAD - loses precision with large numbers
+Number(value) / 10 ** decimals
+(Number(value) / 10 ** decimals).toString()
+```
+
+## Project Structure
+
+- `src/index.ts` - CLI entry point (commander.js setup, global options)
+- `src/commands/` - CLI command handlers (markets, user-positions, prices)
+- `src/fetchers/` - On-chain data fetchers per protocol (pooled, mewler-lend, mewler-earn, isolated, prices, user)
+- `src/calculations/` - APY calculation formulas
+- `src/config/` - Contract addresses (`contracts.ts`), ABIs (`abis.ts`, `lens-abis.ts`), constants (`constants.ts`), chain config (`chain.ts`)
+- `src/utils/` - Shared utilities (vault discovery, token metadata)
+- `src/types.ts` - TypeScript interfaces for all market and position types
+- `src/output.ts` - Structured JSON output helpers
+- `skills/` - OpenClaw agent skill documentation
+
+## Key Conventions
+
+- All output is structured JSON via `src/output.ts` (`success()` / `error()`)
+- On-chain data is fetched via `viem` `PublicClient` with `multicall` for batching
+- Protocol names: **Pooled** (Aave), **Mewler** (Euler), **Isolated** (Fraxlend)
+- Market labels come from `src/config/contracts.ts` `getMarketLabel()`
+- Prices use a multi-layer pipeline: Mewler oracle -> Aave oracle fallback -> cross-pricing
+
+## Contract Addresses & ABIs
+
+All contract addresses live in `src/config/contracts.ts` and `src/config/lens-abis.ts`.
+All ABIs live in `src/config/abis.ts` and `src/config/lens-abis.ts`.
+Never hardcode addresses or ABIs outside these files.
+
+## Constants
+
+Magic numbers and precision values are centralized in `src/config/constants.ts`.
+Always use named constants instead of inline numbers for decimals, precision, and scale values.
+
+## Sub-account Addresses (Mewler/Euler)
+
+Sub-account addresses are derived by XOR (not mask+OR):
+```typescript
+const subAccountBigInt = BigInt(owner) ^ BigInt(subAccountId)
+```
+
+## Building & Linting
+
+```bash
+pnpm build        # Build with tsdown
+pnpm check        # Biome lint + format check
+pnpm check:fix    # Auto-fix lint/format issues
+```
