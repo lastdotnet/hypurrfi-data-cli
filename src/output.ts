@@ -27,10 +27,10 @@ export function success<T>(data: T): ApiResponse<T> {
   }
 }
 
-export function error(_message: string): ApiResponse<null> {
+export function error(message: string): ApiResponse<{ message: string }> {
   return {
     ok: false,
-    data: null,
+    data: { message },
     meta: {
       chain: 'HyperEVM',
       chainId: 999,

@@ -227,7 +227,7 @@ function parsePairData(pairAddresses: Address[], results: any[]): PairParsed[] {
     const ratePerSec = BigInt(rateInfo.ratePerSec ?? 0)
     const feeToProtocolRate = Number(rateInfo.feeToProtocolRate ?? 0) / ISOLATED_LTV_PRECISION
 
-    const utilization = accounting[0] > 0n ? Number((accounting[3] * 1000000n) / accounting[1]) / 10000 : 0
+    const utilization = accounting[0] > 0n ? Number((accounting[2] * 1000000n) / accounting[0]) / 10000 : 0
     const borrowApy = isolatedBorrowAPY(ratePerSec)
 
     const { oracleAddress, lowExchangeRate } = parseExchangeRateInfo(results[base + 8])
