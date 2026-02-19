@@ -1,14 +1,11 @@
 import { type Address, type PublicClient, formatUnits } from 'viem'
-import { aaveOracleAbi, addressProviderAbi } from '../config/abis.js'
-import { AAVE_ORACLE_DECIMALS } from '../config/constants.js'
-import { POOL_ADDRESS_PROVIDER } from '../config/contracts.js'
 import { fetchIsolatedMarkets } from '../fetchers/isolated.js'
 import { fetchMewlerEarnVaults } from '../fetchers/mewler-earn.js'
 import { fetchMewlerLendMarkets } from '../fetchers/mewler-lend.js'
 import { fetchPooledMarkets } from '../fetchers/pooled.js'
-import { fetchAssetPrices } from '../fetchers/prices.js'
+import { fetchAaveOraclePrices, fetchAssetPrices } from '../fetchers/prices.js'
 import { print, success } from '../output.js'
-import type { IsolatedMarket, Market, MarketType } from '../types.js'
+import type { IsolatedMarket, Market, MarketType, MewlerLendMarket } from '../types.js'
 
 function getSupplyAPY(m: Market): number {
   return m.supplyAPY
@@ -112,7 +109,12 @@ async function fetchAllMarkets(client: PublicClient, typeFilter?: MarketType): P
     console.error('Fetch error (pooled):', pooledResult.reason)
   }
 
-  const lendMarkets = lendResult.status === 'fulfilled' ? lendResult.value : []
+  let lendMarkets: MewlerLendMarket[] = []
+  if (lendResult.status === 'fulfilled') {
+    lendMarkets = lendResult.value
+  } else {
+    console.error('Fetch error (mewler lend):', lendResult.reason)
+  }
   if (needMewlerLend) {
     results.push(...(typeFilter ? lendMarkets.filter((m) => m.type === typeFilter) : lendMarkets))
   }
@@ -150,7 +152,7 @@ async function resolveMarketPrices(client: PublicClient, markets: Market[]): Pro
   // Stage 2: Aave oracle fallback for still-unpriced tokens
   const stillUnpriced = collectUnpricedTokenAddresses(markets)
   if (stillUnpriced.size > 0) {
-    const aavePrices = await fetchAaveOracleFallback(client, [...stillUnpriced.values()])
+    const aavePrices = await fetchAaveOraclePrices(client, [...stillUnpriced.values()])
     applyPrices(markets, aavePrices)
   }
 
@@ -210,35 +212,6 @@ function applyPrices(markets: Market[], priceMap: Map<string, number>): void {
   }
 }
 
-async function fetchAaveOracleFallback(client: PublicClient, addresses: Address[]): Promise<Map<string, number>> {
-  const prices = new Map<string, number>()
-  try {
-    const oracleAddr = (await client.readContract({
-      address: POOL_ADDRESS_PROVIDER,
-      abi: addressProviderAbi,
-      functionName: 'getPriceOracle',
-    })) as Address
-
-    const results = await client.multicall({
-      contracts: addresses.map((addr) => ({
-        address: oracleAddr,
-        abi: aaveOracleAbi,
-        functionName: 'getAssetPrice' as const,
-        args: [addr] as const,
-      })),
-      allowFailure: true,
-    })
-
-    for (let i = 0; i < addresses.length; i++) {
-      if (results[i]?.status !== 'success') continue
-      const price = Number(formatUnits(results[i]!.result as bigint, AAVE_ORACLE_DECIMALS))
-      if (price > 0) prices.set(addresses[i]!.toLowerCase(), price)
-    }
-  } catch {
-    /* Aave oracle unavailable */
-  }
-  return prices
-}
 
 function crossPriceIsolatedMarkets(markets: Market[]): void {
   const allPrices = new Map<string, number>()

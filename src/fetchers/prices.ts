@@ -313,7 +313,7 @@ async function fetchIsolatedCrossPrices(
   return derived
 }
 
-async function fetchAaveOraclePrices(client: PublicClient, addresses: Address[]): Promise<Map<string, number>> {
+export async function fetchAaveOraclePrices(client: PublicClient, addresses: Address[]): Promise<Map<string, number>> {
   const prices = new Map<string, number>()
   try {
     const oracleAddr = (await client.readContract({

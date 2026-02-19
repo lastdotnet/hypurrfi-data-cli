@@ -422,7 +422,7 @@ async function fetchMewlerHealthFactors(
 
     const info = res.result as AccountLensInfo
     const liq = info.vaultAccountInfo?.liquidityInfo
-    if (liq?.queryFailure) continue
+    if (!liq || liq.queryFailure) continue
 
     if (liq.liabilityValueLiquidation > 0n) {
       const hf =

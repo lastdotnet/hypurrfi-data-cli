@@ -77,11 +77,6 @@ export function getMarketLabel(address: string): MarketLabel | null {
 export function isPrimeVault(address: string): boolean {
   return address.toLowerCase() in primeVaults
 }
-
-export function isYieldVault(address: string): boolean {
-  return address.toLowerCase() in yieldVaults
-}
-
 // Known token metadata
 export const KNOWN_TOKENS: Record<string, { symbol: string; decimals: number }> = {
   '0x5555555555555555555555555555555555555555': { symbol: 'WHYPE', decimals: 18 },
