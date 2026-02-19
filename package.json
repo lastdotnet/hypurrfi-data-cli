@@ -1,0 +1,40 @@
+{
+  "name": "@hypurrfi/data-cli",
+  "version": "0.1.0",
+  "description": "HypurrFi lending protocol data API for agents — yields, borrows, positions, and prices",
+  "type": "module",
+  "bin": {
+    "hypurr-data": "./dist/index.mjs"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsx src/index.ts",
+    "start": "node dist/index.mjs",
+    "check": "biome check .",
+    "check:fix": "biome check --write --unsafe .",
+    "type-check": "tsc --pretty --noEmit",
+    "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist"
+  },
+  "dependencies": {
+    "commander": "^13.1.0",
+    "dotenv": "16.3.1",
+    "viem": "^2.38.0"
+  },
+  "devDependencies": {
+    "@tsconfig/node18": "~18.2.2",
+    "@tsconfig/strictest": "~2.0.3",
+    "@types/node": "^22.9.0",
+    "tsdown": "^0.20.3",
+    "tsx": "^4.19.0",
+    "typescript": "5.4.5"
+  },
+  "license": "MIT"
+}

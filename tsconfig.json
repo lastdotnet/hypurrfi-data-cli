@@ -1,0 +1,17 @@
+{
+  "extends": ["@tsconfig/strictest/tsconfig", "@tsconfig/node18/tsconfig"],
+  "include": ["src"],
+  "exclude": ["node_modules", "dist", ".turbo"],
+  "compilerOptions": {
+    "lib": ["ESNext"],
+    "target": "ES2022",
+    "outDir": "./dist",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "resolveJsonModule": true,
+    "moduleResolution": "bundler",
+    "strict": true,
+    "module": "esnext"
+  }
+}
