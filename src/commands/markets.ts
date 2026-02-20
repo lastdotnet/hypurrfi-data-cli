@@ -4,8 +4,16 @@ import { fetchMewlerEarnVaults } from '../fetchers/mewler-earn.js'
 import { fetchMewlerLendMarkets } from '../fetchers/mewler-lend.js'
 import { fetchPooledMarkets } from '../fetchers/pooled.js'
 import { fetchAaveOraclePrices, fetchAssetPrices } from '../fetchers/prices.js'
-import { print, success } from '../output.js'
+import { type OutputFormat, error, print, printCSV, success } from '../output.js'
 import type { IsolatedMarket, Market, MarketType, MewlerLendMarket } from '../types.js'
+
+const VALID_MARKET_TYPES: ReadonlySet<string> = new Set<MarketType>([
+  'pooled',
+  'mewler-prime',
+  'mewler-yield',
+  'mewler-earn',
+  'isolated',
+])
 
 function getSupplyAPY(m: Market): number {
   return m.supplyAPY
@@ -16,23 +24,11 @@ function getBorrowAPY(m: Market): number | null {
   return m.borrowAPY
 }
 
-function getSuppliedUSD(m: Market): number {
-  const assetUSD = Number(formatUnits(BigInt(m.totalAssets), m.assetDecimals)) * m.priceUSD
-  if (m.type === 'isolated') {
-    const iso = m as IsolatedMarket
-    const collateralUSD =
-      Number(formatUnits(BigInt(iso.totalCollateral), iso.collateralDecimals)) * iso.collateralPriceUSD
-    return assetUSD + collateralUSD
-  }
-  return assetUSD
-}
-
-function getBorrowedUSD(m: Market): number {
-  return Number(formatUnits(BigInt(m.totalBorrows), m.assetDecimals)) * m.priceUSD
-}
-
 function getTVL(m: Market): number {
-  return getSuppliedUSD(m)
+  if (m.type === 'isolated') {
+    return m.totalAssetsUSD + (m as IsolatedMarket).totalCollateralUSD
+  }
+  return m.totalAssetsUSD
 }
 
 interface MarketsOptions {
@@ -43,21 +39,31 @@ interface MarketsOptions {
   limit?: string
 }
 
-export async function marketsCommand(client: PublicClient, opts: MarketsOptions): Promise<void> {
+export async function marketsCommand(client: PublicClient, opts: MarketsOptions, format: OutputFormat = 'json'): Promise<void> {
+  if (opts.type && !VALID_MARKET_TYPES.has(opts.type)) {
+    print(error(`Invalid market type "${opts.type}". Valid types: pooled, mewler-prime, mewler-yield, mewler-earn, isolated.`))
+    process.exit(1)
+  }
   const typeFilter = opts.type as MarketType | undefined
   const assetFilter = opts.asset?.toUpperCase()
   const minTvl = Number(opts.minTvl ?? 0)
   const sortBy = opts.sort ?? 'tvl'
   const limit = opts.limit ? Number(opts.limit) : undefined
 
-  let results = await fetchAllMarkets(client, typeFilter)
-  await resolveMarketPrices(client, results)
+  const { markets: fetched, warnings } = await fetchAllMarkets(client, typeFilter)
+  await resolveMarketPrices(client, fetched)
+  computeMarketUSDValues(fetched)
 
-  results = applyFiltersAndSort(results, { assetFilter, minTvl, sortBy, limit })
+  const results = applyFiltersAndSort(fetched, { assetFilter, minTvl, sortBy, limit })
+
+  if (format === 'csv') {
+    printCSV(results.map(flattenMarket))
+    return
+  }
 
   const nonEarnMarkets = results.filter((m) => m.type !== 'mewler-earn')
-  const totalSuppliedUSD = nonEarnMarkets.reduce((sum, m) => sum + getSuppliedUSD(m), 0)
-  const totalBorrowedUSD = nonEarnMarkets.reduce((sum, m) => sum + getBorrowedUSD(m), 0)
+  const totalSuppliedUSD = nonEarnMarkets.reduce((sum, m) => sum + getTVL(m), 0)
+  const totalBorrowedUSD = nonEarnMarkets.reduce((sum, m) => sum + m.totalBorrowsUSD, 0)
   const totalAvailableUSD = totalSuppliedUSD - totalBorrowedUSD
 
   const summary = {
@@ -81,15 +87,27 @@ export async function marketsCommand(client: PublicClient, opts: MarketsOptions)
       'mewler-earn': results.filter((m) => m.type === 'mewler-earn').length,
       isolated: results.filter((m) => m.type === 'isolated').length,
     },
+    apyBasis: {
+      pooled: '365d',
+      'mewler-prime': '365.25d',
+      'mewler-yield': '365.25d',
+      'mewler-earn': '365.25d',
+      isolated: '365.2425d',
+    },
     markets: results,
   }
 
-  print(success(summary))
+  print(success(summary, warnings))
 }
 
 // ── Market fetching ────────────────────────────────────────────────
 
-async function fetchAllMarkets(client: PublicClient, typeFilter?: MarketType): Promise<Market[]> {
+interface FetchResult {
+  markets: Market[]
+  warnings: string[]
+}
+
+async function fetchAllMarkets(client: PublicClient, typeFilter?: MarketType): Promise<FetchResult> {
   const needPooled = !typeFilter || typeFilter === 'pooled'
   const needMewlerLend = !typeFilter || typeFilter === 'mewler-prime' || typeFilter === 'mewler-yield'
   const needMewlerEarn = !typeFilter || typeFilter === 'mewler-earn'
@@ -101,39 +119,54 @@ async function fetchAllMarkets(client: PublicClient, typeFilter?: MarketType): P
     needIsolated ? fetchIsolatedMarkets(client) : Promise.resolve([]),
   ])
 
-  const results: Market[] = []
+  const markets: Market[] = []
+  const warnings: string[] = []
 
   if (pooledResult.status === 'fulfilled') {
-    results.push(...pooledResult.value)
+    markets.push(...pooledResult.value)
   } else {
-    console.error('Fetch error (pooled):', pooledResult.reason)
+    warnings.push('Pooled markets unavailable: fetch failed')
   }
 
   let lendMarkets: MewlerLendMarket[] = []
   if (lendResult.status === 'fulfilled') {
     lendMarkets = lendResult.value
   } else {
-    console.error('Fetch error (mewler lend):', lendResult.reason)
+    warnings.push('Mewler lend markets unavailable: fetch failed')
   }
   if (needMewlerLend) {
-    results.push(...(typeFilter ? lendMarkets.filter((m) => m.type === typeFilter) : lendMarkets))
+    markets.push(...(typeFilter ? lendMarkets.filter((m) => m.type === typeFilter) : lendMarkets))
   }
 
   if (needMewlerEarn && lendMarkets.length > 0) {
     try {
-      results.push(...(await fetchMewlerEarnVaults(client, lendMarkets)))
-    } catch (err) {
-      console.error('Fetch error (mewler earn):', err)
+      markets.push(...(await fetchMewlerEarnVaults(client, lendMarkets)))
+    } catch {
+      warnings.push('Mewler earn vaults unavailable: fetch failed')
     }
   }
 
   if (isolatedResult.status === 'fulfilled') {
-    results.push(...isolatedResult.value)
+    markets.push(...isolatedResult.value)
   } else {
-    console.error('Fetch error (isolated):', isolatedResult.reason)
+    warnings.push('Isolated markets unavailable: fetch failed')
   }
 
-  return results
+  return { markets, warnings }
+}
+
+// ── Pre-compute USD values ─────────────────────────────────────────
+
+function computeMarketUSDValues(markets: Market[]): void {
+  for (const m of markets) {
+    m.totalAssetsUSD = Number(formatUnits(BigInt(m.totalAssets), m.assetDecimals)) * m.priceUSD
+    m.totalBorrowsUSD = Number(formatUnits(BigInt(m.totalBorrows), m.assetDecimals)) * m.priceUSD
+    if (m.type === 'isolated') {
+      const iso = m as IsolatedMarket
+      iso.totalCollateralUSD =
+        Number(formatUnits(BigInt(iso.totalCollateral), iso.collateralDecimals)) * iso.collateralPriceUSD
+    }
+  }
 }
 
 // ── Price resolution pipeline ──────────────────────────────────────
@@ -142,7 +175,7 @@ async function resolveMarketPrices(client: PublicClient, markets: Market[]): Pro
   const priceMap = collectExistingPrices(markets)
   applyPrices(markets, priceMap)
 
-  // Stage 1: Mewler oracle batch for remaining unpriced
+  // Stage 1: VaultLens + Aave oracle for remaining unpriced
   const unpriced = collectUnpricedTokens(markets)
   if (unpriced.size > 0) {
     const fetched = await fetchAssetPrices(client, [...unpriced.values()])
@@ -236,6 +269,41 @@ function crossPriceIsolatedMarkets(markets: Market[]): void {
       }
     }
   }
+}
+
+// ── CSV flattening ────────────────────────────────────────────────
+
+function flattenMarket(m: Market): Record<string, unknown> {
+  const base = {
+    address: m.address,
+    type: m.type,
+    name: m.name,
+    assetSymbol: m.assetSymbol,
+    assetAddress: m.assetAddress,
+    priceUSD: m.priceUSD,
+    market: m.market,
+    supplyAPY: m.supplyAPY,
+    borrowAPY: 'borrowAPY' in m ? m.borrowAPY : null,
+    utilization: 'utilization' in m ? m.utilization : null,
+    totalAssetsUSD: m.totalAssetsUSD,
+    totalBorrowsUSD: m.totalBorrowsUSD,
+    supplyCap: 'supplyCap' in m ? m.supplyCap : null,
+    borrowCap: 'borrowCap' in m ? m.borrowCap : null,
+    maxLTV: 'maxLTV' in m ? m.maxLTV : null,
+  }
+
+  if (m.type === 'isolated') {
+    return {
+      ...base,
+      collateralSymbol: m.collateralSymbol,
+      collateralAddress: m.collateralAddress,
+      collateralPriceUSD: m.collateralPriceUSD,
+      totalCollateralUSD: m.totalCollateralUSD,
+      exchangeRate: m.exchangeRate,
+    }
+  }
+
+  return base
 }
 
 // ── Filtering & sorting ────────────────────────────────────────────

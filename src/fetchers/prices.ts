@@ -2,25 +2,19 @@ import { type Address, type PublicClient, formatUnits, erc20Abi as viemErc20Abi 
 import {
   aaveOracleAbi,
   addressProviderAbi,
-  eulerOraclePriceAbi,
   fraxOracleAbi,
   isolatedPairAbi,
   isolatedRegistryAbi,
 } from '../config/abis.js'
 import { AAVE_ORACLE_DECIMALS, DEFAULT_DECIMALS, PRICE_DECIMALS } from '../config/constants.js'
-import { ISOLATED_REGISTRY_ADDRESS } from '../config/contracts.js'
-import {
-  KNOWN_TOKENS,
-  MEWLER_ROUTER_ADDRESS,
-  MEWLER_USD_UNIT_OF_ACCOUNT,
-  POOL_ADDRESS_PROVIDER,
-} from '../config/contracts.js'
+import { ISOLATED_REGISTRY_ADDRESS, KNOWN_TOKENS, POOL_ADDRESS_PROVIDER } from '../config/contracts.js'
 import { LENS_ADDRESSES, vaultLensAbi } from '../config/lens-abis.js'
 import type { TokenPrice, VaultLensInfo } from '../types.js'
 import { discoverMewlerLendVaults } from '../utils/vault-discovery.js'
 
 /**
- * Fetch USD prices for a set of assets in a single multicall.
+ * Fetch USD prices for a set of assets using vault-specific oracles.
+ * Pipeline: VaultLens (each vault's oracle) -> Aave oracle fallback.
  * Returns a map of lowercase address -> priceUSD.
  */
 export async function fetchAssetPrices(
@@ -29,23 +23,8 @@ export async function fetchAssetPrices(
 ): Promise<Map<string, number>> {
   if (assets.length === 0) return new Map()
 
-  const priceCalls = assets.map((a) => ({
-    address: MEWLER_ROUTER_ADDRESS,
-    abi: eulerOraclePriceAbi,
-    functionName: 'getQuote' as const,
-    args: [BigInt(10 ** a.decimals), a.address, MEWLER_USD_UNIT_OF_ACCOUNT] as const,
-  }))
+  const priceMap = await fetchVaultLensPrices(client)
 
-  const results = await client.multicall({ contracts: priceCalls, allowFailure: true })
-
-  const priceMap = new Map<string, number>()
-  for (let i = 0; i < assets.length; i++) {
-    if (results[i]?.status === 'success') {
-      priceMap.set(assets[i]!.address.toLowerCase(), Number(formatUnits(results[i]!.result as bigint, 18)))
-    }
-  }
-
-  // Aave oracle fallback for tokens still missing
   const unpriced = assets.filter((a) => !priceMap.has(a.address.toLowerCase()))
   if (unpriced.length > 0) {
     const aavePrices = await fetchAaveOraclePrices(
@@ -74,25 +53,11 @@ export async function fetchTokenPrices(client: PublicClient, tokenAddresses: Add
     functionName: 'decimals' as const,
   }))
 
-  const [symbolResults, decimalsResults] = await Promise.all([
+  const [symbolResults, decimalsResults, vaultPrices] = await Promise.all([
     client.multicall({ contracts: symbolCalls, allowFailure: true }),
     client.multicall({ contracts: decimalsCalls, allowFailure: true }),
+    fetchVaultLensPrices(client),
   ])
-
-  const priceCalls = tokenAddresses.map((addr, i) => {
-    const known = KNOWN_TOKENS[addr.toLowerCase()]
-    const decimalsRes = decimalsResults[i]
-    const decimals = known?.decimals ?? (decimalsRes?.status === 'success' ? (decimalsRes.result as number) : 18)
-
-    return {
-      address: MEWLER_ROUTER_ADDRESS,
-      abi: eulerOraclePriceAbi,
-      functionName: 'getQuote' as const,
-      args: [BigInt(10 ** decimals), addr, MEWLER_USD_UNIT_OF_ACCOUNT] as const,
-    }
-  })
-
-  const priceResults = await client.multicall({ contracts: priceCalls, allowFailure: true })
 
   const prices: TokenPrice[] = []
   for (let i = 0; i < tokenAddresses.length; i++) {
@@ -100,11 +65,10 @@ export async function fetchTokenPrices(client: PublicClient, tokenAddresses: Add
     const known = KNOWN_TOKENS[addr.toLowerCase()]
     const symbolRes = symbolResults[i]
     const decimalsRes = decimalsResults[i]
-    const priceRes = priceResults[i]
 
     const symbol = known?.symbol ?? (symbolRes?.status === 'success' ? (symbolRes.result as string) : 'UNKNOWN')
     const decimals = known?.decimals ?? (decimalsRes?.status === 'success' ? (decimalsRes.result as number) : 18)
-    const priceUSD = priceRes?.status === 'success' ? Number(formatUnits(priceRes.result as bigint, 18)) : 0
+    const priceUSD = vaultPrices.get(addr.toLowerCase()) ?? 0
 
     prices.push({ address: addr, symbol, decimals, priceUSD })
   }
@@ -119,16 +83,6 @@ export async function fetchTokenPrices(client: PublicClient, tokenAddresses: Add
     for (const p of unpriced) {
       const aavePrice = aavePrices.get(p.address.toLowerCase())
       if (aavePrice && aavePrice > 0) p.priceUSD = aavePrice
-    }
-  }
-
-  // VaultLens prices for tokens still at 0
-  const stillUnpriced = prices.filter((p) => p.priceUSD === 0)
-  if (stillUnpriced.length > 0) {
-    const vaultPrices = await fetchVaultLensPrices(client)
-    for (const p of stillUnpriced) {
-      const vp = vaultPrices.get(p.address.toLowerCase())
-      if (vp && vp > 0) p.priceUSD = vp
     }
   }
 

@@ -4,8 +4,7 @@ import type { Address } from 'viem'
 export const POOL_ADDRESS: Address = '0xceCcE0EB9DD2Ef7996e01e25DD70e461F918A14b'
 export const POOL_ADDRESS_PROVIDER: Address = '0xA73ff12D177D8F1Ec938c3ba0e87D33524dD5594'
 
-// Mewler oracle router
-export const MEWLER_ROUTER_ADDRESS: Address = '0x28675f23E149c25f4f672FAD05f4e71DAfb75048'
+// Mewler unit of account (chain-id 840 = 0x348 as address)
 export const MEWLER_USD_UNIT_OF_ACCOUNT: Address = '0x0000000000000000000000000000000000000348'
 
 // Mewler Vault Connector

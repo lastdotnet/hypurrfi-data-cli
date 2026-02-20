@@ -52,6 +52,8 @@ export async function fetchMewlerEarnVaults(
       supplyAPY: netAPY,
       totalAssets: v.totalAssets.toString(),
       totalBorrows: '0',
+      totalAssetsUSD: 0,
+      totalBorrowsUSD: 0,
       curator: v.curator || null,
       strategies,
       performanceFee: v.performanceFee.toString(),

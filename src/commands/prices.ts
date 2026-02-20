@@ -1,12 +1,16 @@
 import type { Address, PublicClient } from 'viem'
 import { fetchKnownTokenPrices, fetchTokenPrices } from '../fetchers/prices.js'
-import { print, success } from '../output.js'
+import { type OutputFormat, print, printCSV, success } from '../output.js'
 
 interface PricesOptions {
   tokens?: string
 }
 
-export async function pricesCommand(client: PublicClient, opts: PricesOptions): Promise<void> {
+export async function pricesCommand(
+  client: PublicClient,
+  opts: PricesOptions,
+  format: OutputFormat = 'json',
+): Promise<void> {
   let prices: Awaited<ReturnType<typeof fetchTokenPrices>>
 
   if (opts.tokens) {
@@ -16,8 +20,12 @@ export async function pricesCommand(client: PublicClient, opts: PricesOptions): 
     prices = await fetchKnownTokenPrices(client)
   }
 
-  // Sort by price descending
   prices.sort((a, b) => b.priceUSD - a.priceUSD)
+
+  if (format === 'csv') {
+    printCSV(prices.map((p) => ({ ...p })))
+    return
+  }
 
   print(
     success({

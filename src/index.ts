@@ -4,22 +4,30 @@ import { marketsCommand } from './commands/markets.js'
 import { pricesCommand } from './commands/prices.js'
 import { userPositionsCommand } from './commands/user-positions.js'
 import { createClient } from './config/chain.js'
+import type { OutputFormat } from './output.js'
 
-config()
+config({ debug: false })
 
 const program = new Command()
 
 program
   .name('hypurr-data')
   .description('HypurrFi lending protocol data API for agents — yields, borrows, positions, and prices on HyperEVM')
-  .version('0.1.0')
+  .version('0.2.0')
   .option('--rpc <url>', 'Custom RPC URL')
   .option('--address <wallet>', 'Default user wallet address (fallback for user-positions)')
+  .option('--format <format>', 'Output format: json (default) | csv', 'json')
 
 function getClient() {
   // biome-ignore lint/complexity/useLiteralKeys: TS noPropertyAccessFromIndexSignature requires bracket notation
   const rpc = program.opts()['rpc'] as string | undefined
   return createClient(rpc)
+}
+
+function getFormat(): OutputFormat {
+  // biome-ignore lint/complexity/useLiteralKeys: TS noPropertyAccessFromIndexSignature requires bracket notation
+  const fmt = program.opts()['format'] as string | undefined
+  return fmt === 'csv' ? 'csv' : 'json'
 }
 
 program
@@ -32,7 +40,7 @@ program
   .option('-n, --limit <number>', 'Limit number of results')
   .action(async (opts) => {
     try {
-      await marketsCommand(getClient(), opts)
+      await marketsCommand(getClient(), opts, getFormat())
     } catch (err) {
       console.error('Error:', err)
       process.exit(1)
@@ -47,7 +55,7 @@ program
     try {
       // biome-ignore lint/complexity/useLiteralKeys: TS noPropertyAccessFromIndexSignature requires bracket notation
       const defaultAddress = (program.opts()['address'] as string | undefined) ?? process.env['HYPURR_USER_ADDRESS']
-      await userPositionsCommand(getClient(), address ?? defaultAddress ?? '')
+      await userPositionsCommand(getClient(), address ?? defaultAddress ?? '', getFormat())
     } catch (err) {
       console.error('Error:', err)
       process.exit(1)
@@ -60,7 +68,7 @@ program
   .option('--tokens <addresses>', 'Comma-separated token addresses (defaults to known tokens)')
   .action(async (opts) => {
     try {
-      await pricesCommand(getClient(), opts)
+      await pricesCommand(getClient(), opts, getFormat())
     } catch (err) {
       console.error('Error:', err)
       process.exit(1)

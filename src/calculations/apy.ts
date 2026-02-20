@@ -40,11 +40,12 @@ export function eulerSupplyAPY(interestRate: bigint, utilization: number, intere
 }
 
 /**
- * Calculate utilization ratio from totalBorrows / totalAssets
+ * Calculate utilization ratio from totalBorrows / totalAssets.
+ * Uses BigInt-native scaling to avoid precision loss with large values (>2^53).
  */
 export function calculateUtilization(totalBorrows: bigint, totalAssets: bigint): number {
   if (totalAssets === 0n) return 0
-  return Number(totalBorrows) / Number(totalAssets)
+  return Number((totalBorrows * 1_000_000n) / totalAssets) / 1_000_000
 }
 
 /**
