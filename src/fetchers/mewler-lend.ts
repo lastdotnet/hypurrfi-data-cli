@@ -2,7 +2,7 @@ import type { Address, PublicClient } from 'viem'
 import { formatUnits } from 'viem'
 import { CHAIN_ID } from '../config/chain.js'
 import { EULER_FEE_SCALE, LTV_BPS_DIVISOR } from '../config/constants.js'
-import { getMarketLabel, isPrimeVault } from '../config/contracts.js'
+import { resolveEntity, resolveMarket, resolveMewlerLendType } from '../config/contracts.js'
 import { LENS_ADDRESSES, vaultLensAbi } from '../config/lens-abis.js'
 import type { MewlerLendMarket, MewlerVaultLTVInfo, VaultLensInfo } from '../types.js'
 import { discoverMewlerLendVaults } from '../utils/vault-discovery.js'
@@ -40,13 +40,14 @@ export async function fetchMewlerLendMarkets(client: PublicClient, _chainId = CH
     const res = lensResults[i]
     if (res?.status !== 'success') continue
 
+    const vaultData = res.result as VaultLensInfo
     parsedVaults.push({
       meta: {
         address: addr,
-        name: (res.result as VaultLensInfo).vaultName ?? 'Unknown',
-        type: isPrimeVault(addr) ? 'mewler-prime' : 'mewler-yield',
+        name: vaultData.vaultName ?? 'Unknown',
+        type: resolveMewlerLendType(addr),
       },
-      data: res.result as VaultLensInfo,
+      data: vaultData,
     })
   }
 
@@ -148,7 +149,6 @@ function buildMewlerMarket(
   const key = p.meta.address.toLowerCase()
   const borrowableBy = borrowableByMap.get(key) ?? []
   const collateralIn = collateralInMap.get(key) ?? []
-  const label = getMarketLabel(p.meta.address)
 
   return {
     address: p.meta.address,
@@ -158,8 +158,8 @@ function buildMewlerMarket(
     assetAddress: v.asset,
     assetDecimals,
     priceUSD,
-    market: label?.market ?? null,
-    entity: label?.entity ?? null,
+    market: resolveMarket(p.meta.address),
+    entity: resolveEntity(v.governorAdmin),
     supplyAPY,
     borrowAPY,
     interestFee: (Number(v.interestFee) / EULER_FEE_SCALE) * 100,

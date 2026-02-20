@@ -14,6 +14,7 @@ export interface VaultLensInfo {
   interestFee: bigint
   supplyCap: bigint
   borrowCap: bigint
+  governorAdmin: Address
   irmInfo: {
     queryFailure: boolean
     interestRateInfo: readonly { borrowAPY: bigint; supplyAPY: bigint }[]

@@ -47,7 +47,7 @@ Number(value) / 10 ** decimals
 - All output is structured JSON via `src/output.ts` (`success()` / `error()`)
 - On-chain data is fetched via `viem` `PublicClient` with `multicall` for batching
 - Protocol names: **Pooled** (Aave), **Mewler** (Euler), **Isolated** (Fraxlend)
-- Market labels come from `src/config/contracts.ts` `getMarketLabel()`
+- Market labels: entity from `resolveEntity(governorAdmin)` (on-chain), product from `resolveMarket(address)` (vault address sets)
 - Prices use a multi-layer pipeline: Mewler oracle -> Aave oracle fallback -> cross-pricing
 
 ## Contract Addresses & ABIs

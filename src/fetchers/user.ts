@@ -2,7 +2,7 @@ import { type Address, type PublicClient, formatUnits } from 'viem'
 import { calculateUtilization, eulerBorrowAPY, eulerSupplyAPY } from '../calculations/apy.js'
 import { accountLensAbi, eEarnVaultAbi, eVaultAbi, eulerOraclePriceAbi, evcAbi } from '../config/abis.js'
 import { DEFAULT_DECIMALS, PRICE_DECIMALS } from '../config/constants.js'
-import { EVC_ADDRESS, MEWLER_USD_UNIT_OF_ACCOUNT, getMarketLabel } from '../config/contracts.js'
+import { EVC_ADDRESS, MEWLER_USD_UNIT_OF_ACCOUNT, resolveMarket } from '../config/contracts.js'
 import { LENS_ADDRESSES } from '../config/lens-abis.js'
 import type {
   AccountLensInfo,
@@ -133,11 +133,10 @@ async function fetchMewlerPositions(client: PublicClient, userAddress: Address):
 
       if (rp.balance > 0n) {
         const balFormatted = Number(formatUnits(rp.balance, meta.decimals))
-        const label = getMarketLabel(rp.vault)
         collaterals.push({
           vaultAddress: rp.vault,
           vaultName: meta.name,
-          market: label?.market ?? null,
+          market: resolveMarket(rp.vault),
           assetSymbol: meta.assetSymbol,
           balance: balFormatted.toString(),
           balanceUSD: balFormatted * meta.sharePrice * price,
@@ -148,11 +147,10 @@ async function fetchMewlerPositions(client: PublicClient, userAddress: Address):
 
       if (rp.debt > 0n) {
         const debtFormatted = Number(formatUnits(rp.debt, assetDec))
-        const label = getMarketLabel(rp.vault)
         borrows.push({
           vaultAddress: rp.vault,
           vaultName: meta.name,
-          market: label?.market ?? null,
+          market: resolveMarket(rp.vault),
           assetSymbol: meta.assetSymbol,
           debt: debtFormatted.toString(),
           borrowUSD: debtFormatted * price,
@@ -239,14 +237,13 @@ async function fetchMewlerEarnPositions(client: PublicClient, userAddress: Addre
     const info = vaultInfos[i]!
     const assetKey = info.asset?.toLowerCase() ?? ''
     const meta = tokenMeta.get(assetKey)
-    const label = getMarketLabel(av.address)
     const balFormatted = Number(formatUnits(av.balance, info.decimals))
     const priceUSD = prices.get(assetKey) ?? 0
 
     return {
       vaultAddress: av.address,
       vaultName: info.name,
-      market: label?.market ?? null,
+      market: resolveMarket(av.address),
       assetSymbol: meta?.symbol ?? 'UNKNOWN',
       balance: balFormatted.toString(),
       balanceUSD: balFormatted * info.sharePrice * priceUSD,

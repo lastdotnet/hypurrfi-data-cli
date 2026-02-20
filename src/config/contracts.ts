@@ -24,57 +24,80 @@ export const PERSPECTIVES = {
 }
 
 /**
- * Market labels — reused from frontend products config.
- * Maps vault addresses (lowercase) to their market/product label + entity.
+ * Curator entity registry — maps governor/curator wallet addresses to entity names.
+ * When new curators are onboarded, add their addresses here.
  */
+const CURATOR_ENTITIES: Record<string, string> = {
+  '0x65a067b5955f11f6202f14c3b9cd64830c4170fb': 'Clearstar', // Governor
+  '0x30988479c2e6a03e7fb65138b94762d41a733458': 'Clearstar', // Curator Wallet 1 (ForDeFi MPC)
+  '0x72882eb5d27c7088dfa6dde941dd42e5d184f0ef': 'Clearstar', // Curator Wallet 2 (ForDeFi MPC)
+}
+
+/**
+ * Product vault registries — vault addresses per product cluster.
+ * On-chain vault names (e.g. "EVK Vault ehwHYPE-2") don't indicate the product,
+ * so we maintain explicit address sets from the frontend products config.
+ */
+const PRIME_VAULTS = new Set([
+  '0xf73c654d468f5485bf15f3470b78851a49257704', // WHYPE
+  '0x443100d1149d6d925edb044248bbe32c5c7ae955', // kHYPE
+  '0x8a4545827df5446ba120b904e5306e58acca4e89', // UBTC
+  '0xc200aab602cd7046389b5c8fb088884323f8dd0f', // USDC
+  '0x28fca2611d1dd8109c26f748cd2cf3bb4fc6d2cd', // USDT0
+  '0x83c34784e355ad2670db77623b845273844fa480', // USDH
+])
+
+const YIELD_VAULTS = new Set([
+  '0xc7e7861352df6919e7152c007832c48a777f2a4c', // WHYPE
+  '0x97d30b40048ba3fc6b6628ce5e02e77f35b64fe0', // kHYPE
+  '0x3403176f548400772c39e64564f2b148bcdfb65e', // PT-kHYPE
+  '0x64a3052570f5a1c241c6c8cd32f8f9ad411e6990', // wstHYPE
+  '0x1739105522e4fc9675f857c859223d24dfe7593c', // lstHYPE
+  '0xcaaa9a6e543b9af588dce91e6c35cb5fa1c7734c', // beHYPE
+  '0x61cb3b093b7125d593ccfa135c6e4e9d52d2e697', // UBTC
+  '0x06bf901ce21450bab46cea74c4bb6f07e6859cd6', // UETH
+  '0x09a6ad87eff280755bdf3e2c863358d27d81262d', // USDH
+  '0x94f5c76a93f12057d73991ae5b4f70e9287b5b28', // USDT0
+  '0xf9bb65e113418292d1a3555515fbd64637a0be18', // USDC
+  '0xbb7dc37dbc108d40bcdd60403ef7bfdd6489071e', // hwHYPE
+])
+
+const EARN_VAULTS = new Set([
+  '0xf38ea9de758a8f6be08b6e65bc0ff2f3e3ab741b', // purrUSDH
+  '0xe8b10461ea0b04ff30f4cbfc3e93957cac00ded4', // purrHYPE (WHYPE underlying)
+  '0x6dd448d5cb73dc96788d5be605dd3c5c83864a36', // purrUSDT0
+  '0xf868a2b30854fe13e26f7ab7a92609ccb6b9c0e1', // purrUSDC
+])
+
 export interface MarketLabel {
   market: string
   entity: string
 }
 
-const earnVaults: Record<string, MarketLabel> = {
-  '0xf38ea9de758a8f6be08b6e65bc0ff2f3e3ab741b': { market: 'HypurrFi Earn', entity: 'Clearstar' },
-  '0xe8b10461ea0b04ff30f4cbfc3e93957cac00ded4': { market: 'HypurrFi Earn', entity: 'Clearstar' },
-  '0x6dd448d5cb73dc96788d5be605dd3c5c83864a36': { market: 'HypurrFi Earn', entity: 'Clearstar' },
-  '0xf868a2b30854fe13e26f7ab7a92609ccb6b9c0e1': { market: 'HypurrFi Earn', entity: 'Clearstar' },
+/**
+ * Resolve the curator entity name from a governor or curator address.
+ */
+export function resolveEntity(address: string | null | undefined): string | null {
+  if (!address) return null
+  return CURATOR_ENTITIES[address.toLowerCase()] ?? null
 }
 
-const primeVaults: Record<string, MarketLabel> = {
-  '0xf73c654d468f5485bf15f3470b78851a49257704': { market: 'HypurrFi Prime', entity: 'Clearstar' },
-  '0x443100d1149d6d925edb044248bbe32c5c7ae955': { market: 'HypurrFi Prime', entity: 'Clearstar' },
-  '0x8a4545827df5446ba120b904e5306e58acca4e89': { market: 'HypurrFi Prime', entity: 'Clearstar' },
-  '0xc200aab602cd7046389b5c8fb088884323f8dd0f': { market: 'HypurrFi Prime', entity: 'Clearstar' },
-  '0x28fca2611d1dd8109c26f748cd2cf3bb4fc6d2cd': { market: 'HypurrFi Prime', entity: 'Clearstar' },
-  '0x83c34784e355ad2670db77623b845273844fa480': { market: 'HypurrFi Prime', entity: 'Clearstar' },
+/**
+ * Resolve product name from vault address.
+ */
+export function resolveMarket(address: string): string | null {
+  const lower = address.toLowerCase()
+  if (PRIME_VAULTS.has(lower)) return 'HypurrFi Prime'
+  if (YIELD_VAULTS.has(lower)) return 'HypurrFi Yield'
+  if (EARN_VAULTS.has(lower)) return 'HypurrFi Earn'
+  return null
 }
 
-const yieldVaults: Record<string, MarketLabel> = {
-  '0xc7e7861352df6919e7152c007832c48a777f2a4c': { market: 'HypurrFi Yield', entity: 'Clearstar' },
-  '0x97d30b40048ba3fc6b6628ce5e02e77f35b64fe0': { market: 'HypurrFi Yield', entity: 'Clearstar' },
-  '0x3403176f548400772c39e64564f2b148bcdfb65e': { market: 'HypurrFi Yield', entity: 'Clearstar' },
-  '0x64a3052570f5a1c241c6c8cd32f8f9ad411e6990': { market: 'HypurrFi Yield', entity: 'Clearstar' },
-  '0x1739105522e4fc9675f857c859223d24dfe7593c': { market: 'HypurrFi Yield', entity: 'Clearstar' },
-  '0xcaaa9a6e543b9af588dce91e6c35cb5fa1c7734c': { market: 'HypurrFi Yield', entity: 'Clearstar' },
-  '0x61cb3b093b7125d593ccfa135c6e4e9d52d2e697': { market: 'HypurrFi Yield', entity: 'Clearstar' },
-  '0x06bf901ce21450bab46cea74c4bb6f07e6859cd6': { market: 'HypurrFi Yield', entity: 'Clearstar' },
-  '0x09a6ad87eff280755bdf3e2c863358d27d81262d': { market: 'HypurrFi Yield', entity: 'Clearstar' },
-  '0x94f5c76a93f12057d73991ae5b4f70e9287b5b28': { market: 'HypurrFi Yield', entity: 'Clearstar' },
-  '0xf9bb65e113418292d1a3555515fbd64637a0be18': { market: 'HypurrFi Yield', entity: 'Clearstar' },
-  '0xbb7dc37dbc108d40bcdd60403ef7bfdd6489071e': { market: 'HypurrFi Yield', entity: 'Clearstar' },
-}
-
-const MARKET_LABELS: Record<string, MarketLabel> = {
-  ...earnVaults,
-  ...primeVaults,
-  ...yieldVaults,
-}
-
-export function getMarketLabel(address: string): MarketLabel | null {
-  return MARKET_LABELS[address.toLowerCase()] ?? null
-}
-
-export function isPrimeVault(address: string): boolean {
-  return address.toLowerCase() in primeVaults
+/**
+ * Determine mewler vault type from address: prime vaults → 'mewler-prime', others → 'mewler-yield'.
+ */
+export function resolveMewlerLendType(address: string): 'mewler-prime' | 'mewler-yield' {
+  return PRIME_VAULTS.has(address.toLowerCase()) ? 'mewler-prime' : 'mewler-yield'
 }
 // Known token metadata
 export const KNOWN_TOKENS: Record<string, { symbol: string; decimals: number }> = {
