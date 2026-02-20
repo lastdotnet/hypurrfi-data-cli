@@ -281,7 +281,7 @@ npx hypurr-data user-positions
 - `lowestHealthFactor` — minimum health factor across all borrow positions (pooled, mewler, isolated). `null` if no active borrows. Quick check for at-risk wallets.
 - `isAtRisk` — `true` when health factor < 1.5 (threshold defined in `HEALTH_FACTOR_RISK_THRESHOLD`). Available at top level (based on `lowestHealthFactor`) and on each pooled, mewler subaccount, and isolated position. Agents can filter on this boolean without comparing numbers.
 - `pooled` is `null` if user has no pooled position; includes `netAPY` (return on equity after borrow costs, in percentage)
-- `netAPY` — available on pooled, each mewler subaccount, and each isolated position. Formula: `(supply_income - borrow_cost) / equity`. Positive = earning, negative = costs exceed earnings. `null` if equity ≤ 0.
+- `netAPY` — available on pooled, each mewler subaccount, and each isolated position. Formula: `(supply_income - borrow_cost) / net_worth`. For pooled, `net_worth = sum(deposit_USD) - total_borrow_USD` (uses actual deposit values, not LTV-weighted collateral). Positive = earning, negative = costs exceed earnings. `null` if net worth ≤ 0.
 - **Mewler section** (`mewler`) — lend/borrow positions grouped by sub-account:
   - Each sub-account has a unique `subAccountId` (0 = main account, 1–15/169 = additional)
   - `collaterals[]` — vaults where user has deposits; `isEnabled` indicates if EVC recognizes it as collateral for borrowing
