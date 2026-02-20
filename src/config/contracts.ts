@@ -78,23 +78,45 @@ export function isPrimeVault(address: string): boolean {
 }
 // Known token metadata
 export const KNOWN_TOKENS: Record<string, { symbol: string; decimals: number }> = {
+  // Native & HYPE derivatives
   '0x5555555555555555555555555555555555555555': { symbol: 'WHYPE', decimals: 18 },
-  '0xca79db4b49f608ef54a5cb813fbed3a6387bc645': { symbol: 'USDXL', decimals: 18 },
+  '0xfde5b0626fc80e36885e2fa9cd5ad9d7768d725c': { symbol: 'haHYPE', decimals: 18 },
   '0x94e8396e0869c9f2200760af0621afd240e1cf38': { symbol: 'wstHYPE', decimals: 18 },
-  '0x9fdbda0a5e284c32744d2f17ee5c74b284993463': { symbol: 'UBTC', decimals: 8 },
-  '0xbe6727b535545c67d5caa73dea54865b92cf7907': { symbol: 'UETH', decimals: 18 },
-  '0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34': { symbol: 'USDe', decimals: 18 },
-  '0x02c6a2fa58cc01a18b8d9e00ea48d65e4df26c70': { symbol: 'feUSD', decimals: 18 },
-  '0xb8ce59fc3717ada4c02eadf9682a9e934f625ebb': { symbol: 'USD₮0', decimals: 6 },
-  '0x9b498c3c8a0b8cd8ba1d9851d40d186f1872b44e': { symbol: 'PURR', decimals: 18 },
+  '0xfd739d4e423301ce9385c1fb8850539d657c296d': { symbol: 'kHYPE', decimals: 18 },
+  '0xd8fc8f0b03eba61f64d08b0bef69d80916e5dda9': { symbol: 'beHYPE', decimals: 18 },
   '0x5748ae796ae46a4f1348a1693de4b50560485562': { symbol: 'LHYPE', decimals: 18 },
-  '0xa320d9f65ec992eff38622c63627856382db726c': { symbol: 'HFUN', decimals: 18 },
   '0xdabb040c428436d41cecd0fb06bcfdbaad3a9aa8': { symbol: 'mHYPE', decimals: 18 },
-  '0xe6829d9a7ee3040e1276fa75293bde931859e8fa': { symbol: 'cmETH', decimals: 18 },
-  '0x211cc4dd073734da055fbf44a2b4667d5e5fe5d2': { symbol: 'sUSDe', decimals: 18 },
+  '0x81e064d0eb539de7c3170edf38c1a42cbd752a76': { symbol: 'lstHYPE', decimals: 18 },
+  '0x4de03ca1f02591b717495cfa19913ad56a2f5858': { symbol: 'hwHYPE', decimals: 18 },
+  // Stablecoins
+  '0xb8ce59fc3717ada4c02eadf9682a9e934f625ebb': { symbol: 'USD₮0', decimals: 6 },
   '0xb88339cb7199b77e23db6e890353e22632ba630f': { symbol: 'USDC', decimals: 6 },
   '0x111111a1a0667d36bd57c0a9f569b98057111111': { symbol: 'USDH', decimals: 6 },
-  '0xfd739d4e423301ce9385c1fb8850539d657c296d': { symbol: 'kHYPE', decimals: 18 },
-  '0xfde5b0626fc80e36885e2fa9cd5ad9d7768d725c': { symbol: 'haHYPE', decimals: 18 },
-  '0xd8fc8f0b03eba61f64d08b0bef69d80916e5dda9': { symbol: 'beHYPE', decimals: 18 },
+  '0xb50a96253abdf803d85efcdce07ad8becbc52bd5': { symbol: 'USDHL', decimals: 6 },
+  '0xca79db4b49f608ef54a5cb813fbed3a6387bc645': { symbol: 'USDXL', decimals: 18 },
+  '0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34': { symbol: 'USDe', decimals: 18 },
+  '0x211cc4dd073734da055fbf44a2b4667d5e5fe5d2': { symbol: 'sUSDe', decimals: 18 },
+  '0x02c6a2fa58cc01a18b8d9e00ea48d65e4df26c70': { symbol: 'feUSD', decimals: 18 },
+  // BTC & ETH derivatives
+  '0x9fdbda0a5e284c32744d2f17ee5c74b284993463': { symbol: 'UBTC', decimals: 8 },
+  '0xbe6727b535545c67d5caa73dea54865b92cf7907': { symbol: 'UETH', decimals: 18 },
+  '0xe6829d9a7ee3040e1276fa75293bde931859e8fa': { symbol: 'cmETH', decimals: 18 },
+  // Other tokens
+  '0x9b498c3c8a0b8cd8ba1d9851d40d186f1872b44e': { symbol: 'PURR', decimals: 18 },
+  '0xa320d9f65ec992eff38622c63627856382db726c': { symbol: 'HFUN', decimals: 18 },
+  '0xf4d9235269a96aadafc9adae454a0618ebe37949': { symbol: 'XAUt0', decimals: 6 },
+  '0xfdd22ce6d1f66bc0ec89b20bf16ccb6670f55a5a': { symbol: 'thBILL', decimals: 6 },
+  '0x068f321fa8fb9f0d135f290ef6a3e2813e1c8a29': { symbol: 'USOL', decimals: 9 },
+  '0x5e105266db42f78fa814322bce7f388b4c2e61eb': { symbol: 'hbUSDT', decimals: 18 },
+  // LP & structured tokens
+  '0x9fd7466f987fd4c45a5bbde22ed8aba5bc8d72d1': { symbol: 'hwHLP', decimals: 6 },
+  '0x1359b05241ca5076c9f59605214f4f84114c0de8': { symbol: 'WHLP', decimals: 6 },
+  '0x3d75f2bb8abcdbd1e27443cb5cbce8a668046c81': { symbol: 'HLP0', decimals: 6 },
+  '0x47bb061c0204af921f43dc73c7d7768d2672ddee': { symbol: 'BUDDY', decimals: 6 },
+  '0x27ec642013bcb3d80ca3706599d3cda04f6f4452': { symbol: 'UPUMP', decimals: 6 },
+  // Pendle PT tokens
+  '0x311db0fde558689550c68355783c95efdfe25329': { symbol: 'PT-kHYPE-13NOV2025', decimals: 18 },
+  '0xea84ca9849d9e76a78b91f221f84e9ca065fc9f5': { symbol: 'PT-kHYPE-19MAR2026', decimals: 18 },
+  '0x31cc92a2f8c02b8f9f427c48f12e21a848e69847': { symbol: 'PT-vkHYPE-13NOV2025', decimals: 18 },
+  '0xfdf1704a7d60ab07d9889f33951633e7a80e34a3': { symbol: 'PT-HWHLP-18DEC2025', decimals: 6 },
 }
