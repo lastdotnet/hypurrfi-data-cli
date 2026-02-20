@@ -149,6 +149,11 @@ export async function fetchIsolatedUserPositions(
     const borrowFormatted = Number(formatUnits(borrowAmount, borrowDecimals))
     const collateralFormatted = Number(formatUnits(ap.collateralBalance, collateralDecimals))
 
+    const liquidationPrice =
+      healthFactor !== null && healthFactor > 0 && collateralPrice > 0
+        ? collateralPrice / healthFactor
+        : null
+
     return {
       pairAddress: ap.address,
       pairName: ap.name,
@@ -161,8 +166,11 @@ export async function fetchIsolatedUserPositions(
       borrowUSD: borrowFormatted * assetPrice,
       collateralBalance: ap.collateralBalance.toString(),
       collateralUSD: collateralFormatted * collateralPrice,
+      supplyAPY: pm.supplyAPY,
+      borrowAPY: pm.borrowAPY,
       maxLTV: pm.maxLTV * 100,
       healthFactor,
+      liquidationPrice,
     }
   })
 }
@@ -302,16 +310,19 @@ function buildIsolatedMarket(
     entity: 'HypurrFi',
     totalAssets: p.totalAssetAmount.toString(),
     totalBorrows: p.totalBorrowAmount.toString(),
+    totalAssetsUSD: 0,
+    totalBorrowsUSD: 0,
     borrowAPY: p.borrowAPY,
     supplyAPY: p.supplyAPY,
     utilization: p.utilization,
-    supplyCap: p.supplyCap.toString(),
-    borrowCap: p.borrowCap.toString(),
+    supplyCap: p.supplyCap > 0n ? p.supplyCap.toString() : null,
+    borrowCap: p.borrowCap > 0n ? p.borrowCap.toString() : null,
     collateralSymbol: collMeta?.symbol ?? 'UNKNOWN',
     collateralAddress: p.collateralAddress,
     collateralDecimals,
     collateralPriceUSD: 0,
     totalCollateral: p.totalCollateral.toString(),
+    totalCollateralUSD: 0,
     exchangeRate,
     maxLTV: p.maxLTV,
   }
@@ -359,9 +370,11 @@ interface PairMeta {
   exchangePrecision: bigint
   assetAddress: Address
   collateralAddress: Address
+  borrowAPY: number
+  supplyAPY: number
 }
 
-const USER_PAIR_FIELDS = 6
+const USER_PAIR_FIELDS = 7
 
 async function fetchPairMetaForHealthFactor(client: PublicClient, activePairs: ActivePair[]): Promise<PairMeta[]> {
   const calls = activePairs.flatMap((p) => [
@@ -371,6 +384,7 @@ async function fetchPairMetaForHealthFactor(client: PublicClient, activePairs: A
     { address: p.address, abi: isolatedPairAbi, functionName: 'getConstants' as const },
     { address: p.address, abi: isolatedPairAbi, functionName: 'asset' as const },
     { address: p.address, abi: isolatedPairAbi, functionName: 'collateralContract' as const },
+    { address: p.address, abi: isolatedPairAbi, functionName: 'previewAddInterest' as const },
   ])
 
   const results = await client.multicall({ contracts: calls, allowFailure: true })
@@ -383,10 +397,24 @@ async function fetchPairMetaForHealthFactor(client: PublicClient, activePairs: A
 
     const { oracleAddress, lowExchangeRate } = parseExchangeRateInfo(results[base + 2])
 
+    const totalAssetAmount = accounting?.[0] ?? 0n
+    const totalBorrowAmount = accounting?.[2] ?? 0n
+    const utilization = totalAssetAmount > 0n ? Number((totalBorrowAmount * 1000000n) / totalAssetAmount) / 10000 : 0
+
+    let borrowAPY = 0
+    let feeToProtocolRate = 0
+    const previewRes = results[base + 6]
+    if (previewRes?.status === 'success') {
+      const rateInfo = (previewRes.result as [unknown, unknown, unknown, IsolatedRateInfo])[3]
+      const ratePerSec = BigInt(rateInfo.ratePerSec ?? 0)
+      feeToProtocolRate = Number(rateInfo.feeToProtocolRate ?? 0) / ISOLATED_LTV_PRECISION
+      borrowAPY = isolatedBorrowAPY(ratePerSec)
+    }
+
     metas.push({
-      totalAssetAmount: accounting?.[0] ?? 0n,
+      totalAssetAmount,
       totalAssetShares: accounting?.[1] ?? 0n,
-      totalBorrow: accounting?.[2] ?? 0n,
+      totalBorrow: totalBorrowAmount,
       totalBorrowShares: accounting?.[3] ?? 0n,
       maxLTV:
         results[base + 1]?.status === 'success'
@@ -399,6 +427,8 @@ async function fetchPairMetaForHealthFactor(client: PublicClient, activePairs: A
         results[base + 4]?.status === 'success' ? (results[base + 4]!.result as Address) : ('0x0' as Address),
       collateralAddress:
         results[base + 5]?.status === 'success' ? (results[base + 5]!.result as Address) : ('0x0' as Address),
+      borrowAPY,
+      supplyAPY: isolatedDepositAPY(borrowAPY, utilization, feeToProtocolRate),
     })
   }
 

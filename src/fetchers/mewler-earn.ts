@@ -1,7 +1,7 @@
 import type { PublicClient } from 'viem'
 import { CHAIN_ID } from '../config/chain.js'
 import { PERFORMANCE_FEE_PRECISION } from '../config/constants.js'
-import { getMarketLabel } from '../config/contracts.js'
+import { resolveEntity, resolveMarket } from '../config/contracts.js'
 import { LENS_ADDRESSES, eulerEarnVaultLensAbi } from '../config/lens-abis.js'
 import type { EarnVaultLensInfo, MewlerEarnVault, MewlerLendMarket, StrategyInfo } from '../types.js'
 import { discoverMewlerEarnVaults } from '../utils/vault-discovery.js'
@@ -37,7 +37,6 @@ export async function fetchMewlerEarnVaults(
 
     const v = res.result as EarnVaultLensInfo
     const { strategies, netAPY } = buildStrategies(v, lendAPYMap)
-    const label = getMarketLabel(addr)
 
     vaults.push({
       address: addr,
@@ -47,11 +46,13 @@ export async function fetchMewlerEarnVaults(
       assetAddress: v.asset,
       assetDecimals: Number(v.assetDecimals),
       priceUSD: 0,
-      market: label?.market ?? null,
-      entity: label?.entity ?? null,
+      market: resolveMarket(addr),
+      entity: resolveEntity(v.curator),
       supplyAPY: netAPY,
       totalAssets: v.totalAssets.toString(),
       totalBorrows: '0',
+      totalAssetsUSD: 0,
+      totalBorrowsUSD: 0,
       curator: v.curator || null,
       strategies,
       performanceFee: v.performanceFee.toString(),

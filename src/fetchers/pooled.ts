@@ -1,7 +1,7 @@
 import { type Address, type PublicClient, formatUnits, erc20Abi as viemErc20Abi } from 'viem'
 import { rayRateToAPY } from '../calculations/apy.js'
 import { aaveOracleAbi, addressProviderAbi, poolAbi } from '../config/abis.js'
-import { AAVE_ORACLE_DECIMALS, DEFAULT_DECIMALS, MAX_UINT256 } from '../config/constants.js'
+import { AAVE_ORACLE_DECIMALS, DEFAULT_DECIMALS } from '../config/constants.js'
 import { POOL_ADDRESS, POOL_ADDRESS_PROVIDER } from '../config/contracts.js'
 import type { PooledAssetPosition, PooledMarket, PooledUserPosition } from '../types.js'
 
@@ -15,9 +15,9 @@ function decodeLiquidationThreshold(configData: bigint): number {
   return Number((configData >> 16n) & 0xffffn) / 100
 }
 
-function decodeBorrowCapRaw(configData: bigint, decimals: number): string {
+function decodeBorrowCapRaw(configData: bigint, decimals: number): string | null {
   const capWholeTokens = (configData >> 80n) & ((1n << 36n) - 1n)
-  if (capWholeTokens === 0n) return MAX_UINT256.toString()
+  if (capWholeTokens === 0n) return null
   return (capWholeTokens * 10n ** BigInt(decimals)).toString()
 }
 
@@ -25,9 +25,9 @@ function decodeReserveFactor(configData: bigint): number {
   return Number((configData >> 64n) & 0xffffn) / 100
 }
 
-function decodeSupplyCapRaw(configData: bigint, decimals: number): string {
+function decodeSupplyCapRaw(configData: bigint, decimals: number): string | null {
   const capWholeTokens = (configData >> 116n) & ((1n << 36n) - 1n)
-  if (capWholeTokens === 0n) return MAX_UINT256.toString()
+  if (capWholeTokens === 0n) return null
   return (capWholeTokens * 10n ** BigInt(decimals)).toString()
 }
 
@@ -116,6 +116,8 @@ export async function fetchPooledMarkets(client: PublicClient): Promise<PooledMa
       utilization,
       totalAssets: totalSupply.toString(),
       totalBorrows: totalDebt.toString(),
+      totalAssetsUSD: 0,
+      totalBorrowsUSD: 0,
       supplyCap: decodeSupplyCapRaw(r.configData, r.decimals),
       borrowCap: decodeBorrowCapRaw(r.configData, r.decimals),
       maxLTV: decodeLTV(r.configData),

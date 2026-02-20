@@ -14,6 +14,7 @@ export interface VaultLensInfo {
   interestFee: bigint
   supplyCap: bigint
   borrowCap: bigint
+  governorAdmin: Address
   irmInfo: {
     queryFailure: boolean
     interestRateInfo: readonly { borrowAPY: bigint; supplyAPY: bigint }[]
@@ -79,6 +80,8 @@ export interface MarketBase {
   entity: string | null
   totalAssets: string
   totalBorrows: string
+  totalAssetsUSD: number
+  totalBorrowsUSD: number
 }
 
 /** Pooled market */
@@ -88,8 +91,8 @@ export interface PooledMarket extends MarketBase {
   borrowAPY: number
   reserveFactor: number
   utilization: number
-  supplyCap: string
-  borrowCap: string
+  supplyCap: string | null
+  borrowCap: string | null
   maxLTV: number
   liquidationThreshold: number
   aTokenAddress: Address
@@ -110,8 +113,8 @@ export interface MewlerLendMarket extends MarketBase {
   borrowAPY: number
   interestFee: number
   utilization: number
-  supplyCap: string
-  borrowCap: string
+  supplyCap: string | null
+  borrowCap: string | null
   canBeBorrowedByVaults: number
   canBeUsedAsCollateralByVaults: number
   borrowableBy: MewlerVaultLTVInfo[]
@@ -142,13 +145,14 @@ export interface IsolatedMarket extends MarketBase {
   borrowAPY: number
   supplyAPY: number
   utilization: number
-  supplyCap: string
-  borrowCap: string
+  supplyCap: string | null
+  borrowCap: string | null
   collateralSymbol: string
   collateralAddress: Address
   collateralDecimals: number
   collateralPriceUSD: number
   totalCollateral: string
+  totalCollateralUSD: number
   exchangeRate: number
   maxLTV: number
 }
@@ -245,6 +249,9 @@ export interface IsolatedUserPosition {
   borrowUSD: number
   collateralBalance: string
   collateralUSD: number
+  supplyAPY: number
+  borrowAPY: number
   maxLTV: number
   healthFactor: number | null
+  liquidationPrice: number | null
 }

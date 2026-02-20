@@ -1,8 +1,8 @@
-import { type Address, type PublicClient, formatUnits, erc20Abi as viemErc20Abi } from 'viem'
+import { type Address, type PublicClient, formatUnits } from 'viem'
 import { calculateUtilization, eulerBorrowAPY, eulerSupplyAPY } from '../calculations/apy.js'
 import { accountLensAbi, eEarnVaultAbi, eVaultAbi, eulerOraclePriceAbi, evcAbi } from '../config/abis.js'
 import { DEFAULT_DECIMALS, PRICE_DECIMALS } from '../config/constants.js'
-import { EVC_ADDRESS, MEWLER_ROUTER_ADDRESS, MEWLER_USD_UNIT_OF_ACCOUNT, getMarketLabel } from '../config/contracts.js'
+import { EVC_ADDRESS, MEWLER_USD_UNIT_OF_ACCOUNT, resolveMarket } from '../config/contracts.js'
 import { LENS_ADDRESSES } from '../config/lens-abis.js'
 import type {
   AccountLensInfo,
@@ -16,6 +16,7 @@ import { fetchTokenMetadata } from '../utils/token-metadata.js'
 import { discoverMewlerEarnVaults, discoverMewlerLendVaults } from '../utils/vault-discovery.js'
 import { fetchIsolatedUserPositions } from './isolated.js'
 import { fetchPooledUserPosition } from './pooled.js'
+import { fetchAaveOraclePrices, fetchAssetPrices } from './prices.js'
 
 function getSubAccountAddress(owner: Address, subAccountId: number): Address {
   if (subAccountId === 0) return owner
@@ -60,7 +61,18 @@ async function fetchMewlerPositions(client: PublicClient, userAddress: Address):
   const vaultMeta = await fetchVaultMetadata(client, positionVaults)
   const assetAddrs = [...new Set([...vaultMeta.values()].map((m) => m.asset))]
   const tokenMeta = await fetchTokenMetadata(client, assetAddrs)
-  const assetPrices = await fetchMewlerPricesBatch(client, assetAddrs)
+
+  // Use each vault's own oracle for pricing (matches what the account lens / UI uses)
+  const assetPrices = await fetchPricesFromVaultOracles(client, vaultMeta, tokenMeta)
+
+  // Aave oracle fallback for any assets still unpriced
+  const unpricedAddrs = assetAddrs.filter((a) => !assetPrices.has(a.toLowerCase()))
+  if (unpricedAddrs.length > 0) {
+    const aavePrices = await fetchAaveOraclePrices(client, unpricedAddrs)
+    for (const [key, price] of aavePrices) {
+      if (!assetPrices.has(key)) assetPrices.set(key, price)
+    }
+  }
 
   for (const meta of vaultMeta.values()) {
     meta.assetSymbol = tokenMeta.get(meta.asset.toLowerCase())?.symbol ?? 'UNKNOWN'
@@ -121,11 +133,10 @@ async function fetchMewlerPositions(client: PublicClient, userAddress: Address):
 
       if (rp.balance > 0n) {
         const balFormatted = Number(formatUnits(rp.balance, meta.decimals))
-        const label = getMarketLabel(rp.vault)
         collaterals.push({
           vaultAddress: rp.vault,
           vaultName: meta.name,
-          market: label?.market ?? null,
+          market: resolveMarket(rp.vault),
           assetSymbol: meta.assetSymbol,
           balance: balFormatted.toString(),
           balanceUSD: balFormatted * meta.sharePrice * price,
@@ -136,11 +147,10 @@ async function fetchMewlerPositions(client: PublicClient, userAddress: Address):
 
       if (rp.debt > 0n) {
         const debtFormatted = Number(formatUnits(rp.debt, assetDec))
-        const label = getMarketLabel(rp.vault)
         borrows.push({
           vaultAddress: rp.vault,
           vaultName: meta.name,
-          market: label?.market ?? null,
+          market: resolveMarket(rp.vault),
           assetSymbol: meta.assetSymbol,
           debt: debtFormatted.toString(),
           borrowUSD: debtFormatted * price,
@@ -217,23 +227,23 @@ async function fetchMewlerEarnPositions(client: PublicClient, userAddress: Addre
   }
 
   const assetArr = [...assetAddrs]
-  const [tokenMeta, prices] = await Promise.all([
-    fetchTokenMetadata(client, assetArr),
-    fetchMewlerPricesBatch(client, assetArr),
-  ])
+  const tokenMeta = await fetchTokenMetadata(client, assetArr)
+  const prices = await fetchAssetPrices(
+    client,
+    assetArr.map((a) => ({ address: a, decimals: tokenMeta.get(a.toLowerCase())?.decimals ?? DEFAULT_DECIMALS })),
+  )
 
   return activeVaults.map((av, i) => {
     const info = vaultInfos[i]!
     const assetKey = info.asset?.toLowerCase() ?? ''
     const meta = tokenMeta.get(assetKey)
-    const label = getMarketLabel(av.address)
     const balFormatted = Number(formatUnits(av.balance, info.decimals))
     const priceUSD = prices.get(assetKey) ?? 0
 
     return {
       vaultAddress: av.address,
       vaultName: info.name,
-      market: label?.market ?? null,
+      market: resolveMarket(av.address),
       assetSymbol: meta?.symbol ?? 'UNKNOWN',
       balance: balFormatted.toString(),
       balanceUSD: balFormatted * info.sharePrice * priceUSD,
@@ -317,13 +327,14 @@ interface VaultMetaEntry {
   supplyAPY: number
   borrowAPY: number
   assetSymbol: string
+  oracle: Address | null
 }
 
 async function fetchVaultMetadata(
   client: PublicClient,
   vaultAddresses: Address[],
 ): Promise<Map<string, VaultMetaEntry>> {
-  const FIELDS = 8
+  const FIELDS = 9
   const calls = vaultAddresses.flatMap((v) => [
     { address: v, abi: eVaultAbi, functionName: 'name' as const },
     { address: v, abi: eVaultAbi, functionName: 'asset' as const },
@@ -333,6 +344,7 @@ async function fetchVaultMetadata(
     { address: v, abi: eVaultAbi, functionName: 'interestFee' as const },
     { address: v, abi: eVaultAbi, functionName: 'totalBorrows' as const },
     { address: v, abi: eVaultAbi, functionName: 'totalAssets' as const },
+    { address: v, abi: eVaultAbi, functionName: 'oracle' as const },
   ])
   const results = await client.multicall({ contracts: calls, allowFailure: true })
 
@@ -351,6 +363,9 @@ async function fetchVaultMetadata(
     const totalBorrows = results[base + 6]?.status === 'success' ? (results[base + 6]!.result as bigint) : 0n
     const totalAssets = results[base + 7]?.status === 'success' ? (results[base + 7]!.result as bigint) : 0n
 
+    const oracle =
+      results[base + 8]?.status === 'success' ? (results[base + 8]!.result as Address) : null
+
     const utilization = calculateUtilization(totalBorrows, totalAssets)
 
     map.set(vaultAddresses[i]!.toLowerCase(), {
@@ -361,38 +376,51 @@ async function fetchVaultMetadata(
       supplyAPY: totalAssets > 0n ? eulerSupplyAPY(interestRate, utilization, interestFee) : 0,
       borrowAPY: eulerBorrowAPY(interestRate),
       assetSymbol: '',
+      oracle,
     })
   }
 
   return map
 }
 
-async function fetchMewlerPricesBatch(client: PublicClient, assetAddrs: Address[]): Promise<Map<string, number>> {
-  if (assetAddrs.length === 0) return new Map()
+/**
+ * Price assets using each vault's own oracle via getQuote.
+ * This matches the oracle the account lens / UI uses for health factor calculations.
+ */
+async function fetchPricesFromVaultOracles(
+  client: PublicClient,
+  vaultMeta: Map<string, VaultMetaEntry>,
+  tokenMeta: Map<string, { symbol: string; decimals: number }>,
+): Promise<Map<string, number>> {
+  const priceMap = new Map<string, number>()
+  const oraclePairs: { asset: Address; oracle: Address; decimals: number }[] = []
 
-  const decResults = await client.multicall({
-    contracts: assetAddrs.map((a) => ({ address: a, abi: viemErc20Abi, functionName: 'decimals' as const })),
-    allowFailure: true,
-  })
-
-  const priceCalls = assetAddrs.map((a, i) => {
-    const dec = decResults[i]?.status === 'success' ? (decResults[i]!.result as number) : DEFAULT_DECIMALS
-    return {
-      address: MEWLER_ROUTER_ADDRESS,
-      abi: eulerOraclePriceAbi,
-      functionName: 'getQuote' as const,
-      args: [BigInt(10 ** dec), a, MEWLER_USD_UNIT_OF_ACCOUNT] as const,
-    }
-  })
-
-  const priceRes = await client.multicall({ contracts: priceCalls, allowFailure: true })
-  const map = new Map<string, number>()
-  for (let i = 0; i < assetAddrs.length; i++) {
-    if (priceRes[i]?.status === 'success') {
-      map.set(assetAddrs[i]!.toLowerCase(), Number(formatUnits(priceRes[i]!.result as bigint, PRICE_DECIMALS)))
+  for (const meta of vaultMeta.values()) {
+    const key = meta.asset.toLowerCase()
+    if (!meta.oracle) continue
+    const dec = tokenMeta.get(key)?.decimals ?? DEFAULT_DECIMALS
+    if (!oraclePairs.some((u) => u.asset.toLowerCase() === key)) {
+      oraclePairs.push({ asset: meta.asset, oracle: meta.oracle, decimals: dec })
     }
   }
-  return map
+  if (oraclePairs.length === 0) return priceMap
+
+  const calls = oraclePairs.map((u) => ({
+    address: u.oracle,
+    abi: eulerOraclePriceAbi,
+    functionName: 'getQuote' as const,
+    args: [BigInt(10 ** u.decimals), u.asset, MEWLER_USD_UNIT_OF_ACCOUNT] as const,
+  }))
+  const results = await client.multicall({ contracts: calls, allowFailure: true })
+
+  for (let i = 0; i < oraclePairs.length; i++) {
+    if (results[i]?.status === 'success') {
+      const price = Number(formatUnits(results[i]!.result as bigint, PRICE_DECIMALS))
+      if (price > 0) priceMap.set(oraclePairs[i]!.asset.toLowerCase(), price)
+    }
+  }
+
+  return priceMap
 }
 
 async function fetchMewlerHealthFactors(

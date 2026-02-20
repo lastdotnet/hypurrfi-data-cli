@@ -7,4 +7,5 @@ export const ISOLATED_LTV_PRECISION = 1e5
 export const ISOLATED_RATE_PRECISION = 1e18
 export const PERFORMANCE_FEE_PRECISION = 1e18
 export const LTV_BPS_DIVISOR = 100
-export const MAX_UINT256 = (1n << 256n) - 1n
+
+export const HEALTH_FACTOR_RISK_THRESHOLD = 1.5
