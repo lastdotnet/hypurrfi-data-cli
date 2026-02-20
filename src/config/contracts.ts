@@ -60,6 +60,7 @@ const YIELD_VAULTS = new Set([
   '0x94f5c76a93f12057d73991ae5b4f70e9287b5b28', // USDT0
   '0xf9bb65e113418292d1a3555515fbd64637a0be18', // USDC
   '0xbb7dc37dbc108d40bcdd60403ef7bfdd6489071e', // hwHYPE
+  '0x23bf20b4d6e280eaca58826a541c9ee5401bd357', // LHYPE
 ])
 
 const EARN_VAULTS = new Set([
