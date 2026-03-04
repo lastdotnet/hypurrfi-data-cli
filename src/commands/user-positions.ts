@@ -76,6 +76,7 @@ export async function userPositionsCommand(
             isAtRisk: atRisk(p.healthFactor),
             liquidationCollateralUSD: liquidationThresholdUSD(p.totalCollateralUSD, p.healthFactor),
             ltv: p.ltv,
+            userEMode: p.userEMode,
             netWorthUSD: netWorth,
             netAPY: computeNetAPY(
               p.supplies.map((s) => ({ usd: s.amountUSD, apy: s.apy })),

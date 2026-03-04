@@ -85,6 +85,14 @@ export interface MarketBase {
 }
 
 /** Pooled market */
+export interface EModeCategoryInfo {
+  id: number
+  ltv: number
+  liquidationThreshold: number
+  liquidationBonus: number
+  label: string
+}
+
 export interface PooledMarket extends MarketBase {
   type: 'pooled'
   supplyAPY: number
@@ -96,6 +104,7 @@ export interface PooledMarket extends MarketBase {
   maxLTV: number
   liquidationThreshold: number
   aTokenAddress: Address
+  eModeCategory: EModeCategoryInfo | null
 }
 
 /** Mewler lending vault (prime or yield) */
@@ -182,6 +191,7 @@ export interface PooledUserPosition {
   availableBorrowsUSD: number
   healthFactor: number
   ltv: number
+  userEMode: EModeCategoryInfo | null
   supplies: PooledAssetPosition[]
   borrows: PooledAssetPosition[]
 }

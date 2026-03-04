@@ -3,7 +3,7 @@ import { rayRateToAPY } from '../calculations/apy.js'
 import { aaveOracleAbi, addressProviderAbi, poolAbi } from '../config/abis.js'
 import { AAVE_ORACLE_DECIMALS, DEFAULT_DECIMALS } from '../config/constants.js'
 import { POOL_ADDRESS, POOL_ADDRESS_PROVIDER } from '../config/contracts.js'
-import type { PooledAssetPosition, PooledMarket, PooledUserPosition } from '../types.js'
+import type { EModeCategoryInfo, PooledAssetPosition, PooledMarket, PooledUserPosition } from '../types.js'
 
 // ── Config bit decoders ────────────────────────────────────────────
 
@@ -29,6 +29,10 @@ function decodeSupplyCapRaw(configData: bigint, decimals: number): string | null
   const capWholeTokens = (configData >> 116n) & ((1n << 36n) - 1n)
   if (capWholeTokens === 0n) return null
   return (capWholeTokens * 10n ** BigInt(decimals)).toString()
+}
+
+function decodeEModeCategoryId(configData: bigint): number {
+  return Number((configData >> 168n) & 0xffn)
 }
 
 // ── Market fetching ────────────────────────────────────────────────
@@ -75,7 +79,10 @@ export async function fetchPooledMarkets(client: PublicClient): Promise<PooledMa
   const oracleAddress = await fetchAaveOracleAddress(client)
   const assetAddresses = reserves.map((r) => r.address)
 
-  const [oraclePrices, supplyResults] = await Promise.all([
+  // Collect unique eMode category IDs to batch-fetch
+  const eModeCategoryIds = [...new Set(reserves.map((r) => decodeEModeCategoryId(r.configData)).filter((id) => id > 0))]
+
+  const [oraclePrices, supplyResults, ...eModeResults] = await Promise.all([
     client.readContract({
       address: oracleAddress,
       abi: aaveOracleAbi,
@@ -89,7 +96,37 @@ export async function fetchPooledMarkets(client: PublicClient): Promise<PooledMa
       ]),
       allowFailure: true,
     }),
+    ...(eModeCategoryIds.length > 0
+      ? [
+          client.multicall({
+            contracts: eModeCategoryIds.map((id) => ({
+              address: POOL_ADDRESS,
+              abi: poolAbi,
+              functionName: 'getEModeCategoryData' as const,
+              args: [id] as const,
+            })),
+            allowFailure: true,
+          }),
+        ]
+      : []),
   ])
+
+  const eModeMap = new Map<number, EModeCategoryInfo>()
+  if (eModeCategoryIds.length > 0 && eModeResults[0]) {
+    const catResults = eModeResults[0] as { status: string; result?: unknown }[]
+    for (let i = 0; i < eModeCategoryIds.length; i++) {
+      const res = catResults[i]
+      if (res?.status !== 'success') continue
+      const cat = res.result as { ltv: number; liquidationThreshold: number; liquidationBonus: number; label: string }
+      eModeMap.set(eModeCategoryIds[i]!, {
+        id: eModeCategoryIds[i]!,
+        ltv: Number(cat.ltv) / 100,
+        liquidationThreshold: Number(cat.liquidationThreshold) / 100,
+        liquidationBonus: Number(cat.liquidationBonus) / 100,
+        label: cat.label,
+      })
+    }
+  }
 
   return reserves.map((r, i) => {
     const totalSupply = supplyResults[i * 2]?.status === 'success' ? (supplyResults[i * 2]!.result as bigint) : 0n
@@ -123,6 +160,7 @@ export async function fetchPooledMarkets(client: PublicClient): Promise<PooledMa
       maxLTV: decodeLTV(r.configData),
       liquidationThreshold: decodeLiquidationThreshold(r.configData),
       aTokenAddress: r.aTokenAddress,
+      eModeCategory: eModeMap.get(decodeEModeCategoryId(r.configData)) ?? null,
     }
   })
 }
@@ -142,11 +180,17 @@ export async function fetchPooledUserPosition(
 
     if (!reservesList || reservesList.length === 0) return null
 
-    const [accountData, reserveResults, metaResults] = await Promise.all([
+    const [accountData, userEModeId, reserveResults, metaResults] = await Promise.all([
       client.readContract({
         address: POOL_ADDRESS,
         abi: poolAbi,
         functionName: 'getUserAccountData',
+        args: [userAddress],
+      }),
+      client.readContract({
+        address: POOL_ADDRESS,
+        abi: poolAbi,
+        functionName: 'getUserEMode',
         args: [userAddress],
       }),
       client.multicall({
@@ -211,12 +255,36 @@ export async function fetchPooledUserPosition(
 
     const { supplies, borrows } = buildUserAssetPositions(reserves, balanceResults)
 
+    let userEMode: EModeCategoryInfo | null = null
+    const eModeIdNum = Number(userEModeId)
+    if (eModeIdNum > 0) {
+      try {
+        const cat = await client.readContract({
+          address: POOL_ADDRESS,
+          abi: poolAbi,
+          functionName: 'getEModeCategoryData',
+          args: [eModeIdNum],
+        })
+        const catData = cat as { ltv: number; liquidationThreshold: number; liquidationBonus: number; label: string }
+        userEMode = {
+          id: eModeIdNum,
+          ltv: Number(catData.ltv) / 100,
+          liquidationThreshold: Number(catData.liquidationThreshold) / 100,
+          liquidationBonus: Number(catData.liquidationBonus) / 100,
+          label: catData.label,
+        }
+      } catch {
+        /* eMode category fetch failed */
+      }
+    }
+
     return {
       totalCollateralUSD: Number(formatUnits(totalCollateralBase, AAVE_ORACLE_DECIMALS)),
       totalBorrowUSD: Number(formatUnits(totalDebtBase, AAVE_ORACLE_DECIMALS)),
       availableBorrowsUSD: Number(formatUnits(availableBorrowsBase, AAVE_ORACLE_DECIMALS)),
       healthFactor: Number(formatUnits(healthFactor, DEFAULT_DECIMALS)),
       ltv: Number(ltv) / 100,
+      userEMode,
       supplies,
       borrows,
     }

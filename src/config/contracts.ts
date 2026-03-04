@@ -38,7 +38,9 @@ const CURATOR_ENTITIES: Record<string, string> = {
  * On-chain vault names (e.g. "EVK Vault ehwHYPE-2") don't indicate the product,
  * so we maintain explicit address sets from the frontend products config.
  */
-const PRIME_VAULTS = new Set([
+const lowerSet = (addrs: string[]) => new Set(addrs.map((a) => a.toLowerCase()))
+
+const PRIME_VAULTS = lowerSet([
   '0xf73c654d468f5485bf15f3470b78851a49257704', // WHYPE
   '0x443100d1149d6d925edb044248bbe32c5c7ae955', // kHYPE
   '0x8a4545827df5446ba120b904e5306e58acca4e89', // UBTC
@@ -47,7 +49,7 @@ const PRIME_VAULTS = new Set([
   '0x83c34784e355ad2670db77623b845273844fa480', // USDH
 ])
 
-const YIELD_VAULTS = new Set([
+const YIELD_VAULTS = lowerSet([
   '0xc7e7861352df6919e7152c007832c48a777f2a4c', // WHYPE
   '0x97d30b40048ba3fc6b6628ce5e02e77f35b64fe0', // kHYPE
   '0x3403176f548400772c39e64564f2b148bcdfb65e', // PT-kHYPE
@@ -61,9 +63,10 @@ const YIELD_VAULTS = new Set([
   '0xf9bb65e113418292d1a3555515fbd64637a0be18', // USDC
   '0xbb7dc37dbc108d40bcdd60403ef7bfdd6489071e', // hwHYPE
   '0x23bf20b4d6e280eaca58826a541c9ee5401bd357', // LHYPE
+  '0xac207ffa0bfce194db18d1820902d48a2d948968', // sUSDp
 ])
 
-const EARN_VAULTS = new Set([
+const EARN_VAULTS = lowerSet([
   '0xf38ea9de758a8f6be08b6e65bc0ff2f3e3ab741b', // purrUSDH
   '0xe8b10461ea0b04ff30f4cbfc3e93957cac00ded4', // purrHYPE (WHYPE underlying)
   '0x6dd448d5cb73dc96788d5be605dd3c5c83864a36', // purrUSDT0
@@ -121,6 +124,7 @@ export const KNOWN_TOKENS: Record<string, { symbol: string; decimals: number }> 
   '0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34': { symbol: 'USDe', decimals: 18 },
   '0x211cc4dd073734da055fbf44a2b4667d5e5fe5d2': { symbol: 'sUSDe', decimals: 18 },
   '0x02c6a2fa58cc01a18b8d9e00ea48d65e4df26c70': { symbol: 'feUSD', decimals: 18 },
+  '0x9b3a8f7cec208e247d97dee13313690977e24459': { symbol: 'sUSDp', decimals: 18 },
   // BTC & ETH derivatives
   '0x9fdbda0a5e284c32744d2f17ee5c74b284993463': { symbol: 'UBTC', decimals: 8 },
   '0xbe6727b535545c67d5caa73dea54865b92cf7907': { symbol: 'UETH', decimals: 18 },
