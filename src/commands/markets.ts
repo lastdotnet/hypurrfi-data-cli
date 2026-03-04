@@ -5,7 +5,7 @@ import { fetchMewlerLendMarkets } from '../fetchers/mewler-lend.js'
 import { fetchPooledMarkets } from '../fetchers/pooled.js'
 import { fetchAaveOraclePrices, fetchAssetPrices } from '../fetchers/prices.js'
 import { type OutputFormat, error, print, printCSV, success } from '../output.js'
-import type { IsolatedMarket, Market, MarketType, MewlerLendMarket } from '../types.js'
+import type { EModeCategoryInfo, IsolatedMarket, Market, MarketType, MewlerLendMarket, PooledMarket } from '../types.js'
 
 const VALID_MARKET_TYPES: ReadonlySet<string> = new Set<MarketType>([
   'pooled',
@@ -66,6 +66,9 @@ export async function marketsCommand(client: PublicClient, opts: MarketsOptions,
   const totalBorrowedUSD = nonEarnMarkets.reduce((sum, m) => sum + m.totalBorrowsUSD, 0)
   const totalAvailableUSD = totalSuppliedUSD - totalBorrowedUSD
 
+  const hasPooled = results.some((m) => m.type === 'pooled')
+  const eModeCategories = hasPooled ? collectEModeCategories(results) : undefined
+
   const summary = {
     totalMarkets: results.length,
     totalsUSD: {
@@ -87,6 +90,7 @@ export async function marketsCommand(client: PublicClient, opts: MarketsOptions,
       'mewler-earn': results.filter((m) => m.type === 'mewler-earn').length,
       isolated: results.filter((m) => m.type === 'isolated').length,
     },
+    ...(eModeCategories ? { pooledInfo: { eModeCategories } } : {}),
     apyBasis: {
       pooled: '365d',
       'mewler-prime': '365.25d',
@@ -98,6 +102,26 @@ export async function marketsCommand(client: PublicClient, opts: MarketsOptions,
   }
 
   print(success(summary, warnings))
+}
+
+// ── E-Mode summary ────────────────────────────────────────────────
+
+function collectEModeCategories(
+  markets: Market[],
+): (EModeCategoryInfo & { assets: string[] })[] {
+  const catMap = new Map<number, EModeCategoryInfo & { assets: string[] }>()
+  for (const m of markets) {
+    if (m.type !== 'pooled') continue
+    const pm = m as PooledMarket
+    if (!pm.eModeCategory) continue
+    const existing = catMap.get(pm.eModeCategory.id)
+    if (existing) {
+      existing.assets.push(pm.assetSymbol)
+    } else {
+      catMap.set(pm.eModeCategory.id, { ...pm.eModeCategory, assets: [pm.assetSymbol] })
+    }
+  }
+  return [...catMap.values()]
 }
 
 // ── Market fetching ────────────────────────────────────────────────

@@ -55,6 +55,33 @@ export const poolAbi = [
     stateMutability: 'view',
     type: 'function',
   },
+  {
+    inputs: [{ internalType: 'uint8', name: 'id', type: 'uint8' }],
+    name: 'getEModeCategoryData',
+    outputs: [
+      {
+        components: [
+          { internalType: 'uint16', name: 'ltv', type: 'uint16' },
+          { internalType: 'uint16', name: 'liquidationThreshold', type: 'uint16' },
+          { internalType: 'uint16', name: 'liquidationBonus', type: 'uint16' },
+          { internalType: 'address', name: 'priceSource', type: 'address' },
+          { internalType: 'string', name: 'label', type: 'string' },
+        ],
+        internalType: 'struct DataTypes.EModeCategory',
+        name: '',
+        type: 'tuple',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'address', name: 'user', type: 'address' }],
+    name: 'getUserEMode',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
 ] as const
 
 export const eulerOraclePriceAbi = [

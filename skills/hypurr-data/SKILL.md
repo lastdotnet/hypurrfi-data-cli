@@ -87,6 +87,12 @@ npx hypurr-data markets -t mewler-prime -a USDC --min-tvl 10000 -s supply-apy
     "totalsUSD": { "supplied": 67160000, "borrowed": 25100000, "available": 42060000 },
     "filters": { "type": null, "asset": null, "minTvl": 0, "sort": "tvl", "limit": null },
     "byType": { "pooled": 10, "mewler-prime": 8, "mewler-yield": 6, "mewler-earn": 12, "isolated": 6 },
+    "pooledInfo": {
+      "eModeCategories": [
+        { "id": 1, "ltv": 90, "liquidationThreshold": 95, "liquidationBonus": 103, "label": "HYPE Correlated", "assets": ["WHYPE", "kHYPE", "wstHYPE", "beHYPE"] },
+        { "id": 2, "ltv": 90, "liquidationThreshold": 93, "liquidationBonus": 103, "label": "USD Correlated", "assets": ["USD₮0", "USDC", "USDH", "USDe"] }
+      ]
+    },
     "apyBasis": { "pooled": "365d", "mewler-prime": "365.25d", "mewler-yield": "365.25d", "mewler-earn": "365.25d", "isolated": "365.2425d" },
     "markets": [ ... ]
   },
@@ -96,6 +102,7 @@ npx hypurr-data markets -t mewler-prime -a USDC --min-tvl 10000 -s supply-apy
 ```
 
 - `totalsUSD` — aggregate USD values across all markets (excluding earn vaults to avoid double-counting). `supplied` includes collateral for isolated markets.
+- `pooledInfo` — present only when pooled (Aave) markets are in the results. Contains `eModeCategories`: available Aave E-Mode categories. Each entry has `id`, `ltv`, `liquidationThreshold`, `liquidationBonus`, `label`, and `assets` (eligible asset symbols). E-Mode lets users get higher LTV when supplying and borrowing correlated assets (e.g. all USD stablecoins). Omitted entirely when filtering to non-pooled types (e.g. `-t isolated`).
 - `apyBasis` — year-length convention used per protocol for APY compounding.
 - `warnings` — array of strings when some protocol data is unavailable (e.g. `"Pooled markets unavailable: fetch failed"`). Empty array or absent when all data is complete.
 
@@ -123,6 +130,7 @@ Pooled (`type: "pooled"`):
 - `borrowCap` — max total borrow cap (raw, smallest unit; `null` = uncapped)
 - `maxLTV` — max loan-to-value ratio (percentage)
 - `liquidationThreshold` — liquidation threshold (percentage)
+- `eModeCategory` — E-Mode category for this asset (`null` if not part of any E-Mode). Contains `id`, `ltv`, `liquidationThreshold`, `liquidationBonus`, `label`. When a user activates this E-Mode, they get the higher `ltv`/`liquidationThreshold` instead of the per-asset defaults — but only for borrowing other assets in the same category.
 
 Mewler Lending (`type: "mewler-prime"` or `"mewler-yield"`):
 - `supplyAPY` — supply yield (after interest fee deduction)
@@ -182,6 +190,7 @@ npx hypurr-data user-positions
       "isAtRisk": false,
       "liquidationCollateralUSD": 23809.52,
       "ltv": 40,
+      "userEMode": { "id": 1, "ltv": 90, "liquidationThreshold": 95, "liquidationBonus": 103, "label": "HYPE Correlated" },
       "netWorthUSD": 30000,
       "netAPY": 0.57,
       "supplies": [
@@ -281,6 +290,7 @@ npx hypurr-data user-positions
 - `lowestHealthFactor` — minimum health factor across all borrow positions (pooled, mewler, isolated). `null` if no active borrows. Quick check for at-risk wallets.
 - `isAtRisk` — `true` when health factor < 1.5 (threshold defined in `HEALTH_FACTOR_RISK_THRESHOLD`). Available at top level (based on `lowestHealthFactor`) and on each pooled, mewler subaccount, and isolated position. Agents can filter on this boolean without comparing numbers.
 - `pooled` is `null` if user has no pooled position; includes `netAPY` (return on equity after borrow costs, in percentage)
+- `pooled.userEMode` — the user's active E-Mode category (`null` if not in E-Mode). When active, the user gets enhanced LTV/liquidation parameters for assets in that category. See `pooledInfo.eModeCategories` in the markets response for available options.
 - `netAPY` — available on pooled, each mewler subaccount, and each isolated position. Formula: `(supply_income - borrow_cost) / net_worth`. For pooled, `net_worth = sum(deposit_USD) - total_borrow_USD` (uses actual deposit values, not LTV-weighted collateral). Positive = earning, negative = costs exceed earnings. `null` if net worth ≤ 0.
 - **Mewler section** (`mewler`) — lend/borrow positions grouped by sub-account:
   - Each sub-account has a unique `subAccountId` (0 = main account, 1–15/169 = additional)

@@ -61,6 +61,7 @@ const YIELD_VAULTS = new Set([
   '0xf9bb65e113418292d1a3555515fbd64637a0be18', // USDC
   '0xbb7dc37dbc108d40bcdd60403ef7bfdd6489071e', // hwHYPE
   '0x23bf20b4d6e280eaca58826a541c9ee5401bd357', // LHYPE
+  '0xAc207FFa0bfcE194Db18D1820902D48a2d948968', // sUSDp
 ])
 
 const EARN_VAULTS = new Set([
@@ -121,6 +122,7 @@ export const KNOWN_TOKENS: Record<string, { symbol: string; decimals: number }> 
   '0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34': { symbol: 'USDe', decimals: 18 },
   '0x211cc4dd073734da055fbf44a2b4667d5e5fe5d2': { symbol: 'sUSDe', decimals: 18 },
   '0x02c6a2fa58cc01a18b8d9e00ea48d65e4df26c70': { symbol: 'feUSD', decimals: 18 },
+  '0x9b3a8f7cec208e247d97dee13313690977e24459': { symbol: 'sUSDp', decimals: 18 },
   // BTC & ETH derivatives
   '0x9fdbda0a5e284c32744d2f17ee5c74b284993463': { symbol: 'UBTC', decimals: 8 },
   '0xbe6727b535545c67d5caa73dea54865b92cf7907': { symbol: 'UETH', decimals: 18 },
