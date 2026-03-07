@@ -1,0 +1,58 @@
+# Creates a pre-built release tarball when you push a version tag (e.g. v0.2.0)
+
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - name: Install and build
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+
+      - name: Prepare release artifact
+        run: |
+          # Re-install with production-only deps using pnpm for lockfile consistency
+          rm -rf node_modules
+          pnpm install --frozen-lockfile --prod
+
+          VERSION="${GITHUB_REF_NAME#v}"
+          DIR="hypurrfi-data-cli-${VERSION}"
+          mkdir "$DIR"
+          cp -r dist node_modules package.json LICENSE "$DIR/"
+          tar czf "${DIR}.tar.gz" "$DIR"
+          echo "TARBALL=${DIR}.tar.gz" >> "$GITHUB_ENV"
+          echo "VERSION=${VERSION}" >> "$GITHUB_ENV"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.TARBALL }}
+          generate_release_notes: true
+
+      - name: Trigger tap update
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.TAP_REPO_TOKEN }}
+          repository: lastdotnet/homebrew-brew
+          event-type: hypurrfi-data-cli-release
+          client-payload: '{"version": "${{ env.VERSION }}"}'
