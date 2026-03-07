@@ -1,5 +1,4 @@
-# Add this to the hypurrfi-data-cli repo at .github/workflows/release.yml
-# It creates a pre-built release tarball when you push a version tag (e.g. v0.2.0)
+# Creates a pre-built release tarball when you push a version tag (e.g. v0.2.0)
 
 name: Release
 
@@ -32,9 +31,9 @@ jobs:
 
       - name: Prepare release artifact
         run: |
-          # Install production-only deps via npm for portability
+          # Re-install with production-only deps using pnpm for lockfile consistency
           rm -rf node_modules
-          npm install --omit=dev
+          pnpm install --frozen-lockfile --prod
 
           VERSION="${GITHUB_REF_NAME#v}"
           DIR="hypurrfi-data-cli-${VERSION}"
