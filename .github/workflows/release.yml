@@ -53,6 +53,6 @@ jobs:
         uses: peter-evans/repository-dispatch@v3
         with:
           token: ${{ secrets.TAP_REPO_TOKEN }}
-          repository: lastdotnet/homebrew-brew
+          repository: lastdotnet/homebrew-last-taproom
           event-type: hypurrfi-data-cli-release
           client-payload: '{"version": "${{ env.VERSION }}"}'
