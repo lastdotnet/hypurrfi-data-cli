@@ -85,7 +85,7 @@ export async function cheapestBorrow(client: PublicClient, token: string) {
     market: m.address,
     token: m.assetSymbol,
     apy: m.borrowAPY,
-    risk: m.borrowAPY > 0.15 ? ('high' as const) : m.borrowAPY > 0.08 ? ('medium' as const) : ('low' as const),
+    risk: m.borrowAPY > 15 ? ('high' as const) : m.borrowAPY > 8 ? ('medium' as const) : ('low' as const),
     details: {
       availableLiquidity: m.totalAssetsUSD - m.totalBorrowsUSD,
       utilization: m.utilization,

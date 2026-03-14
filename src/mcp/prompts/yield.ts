@@ -131,7 +131,7 @@ export async function findEarnStrategies(client: PublicClient, token: string) {
 function getRiskLevel(m: Market): 'low' | 'medium' | 'high' {
   if (m.type === 'mewler-earn') return 'low'
   const utilization = 'utilization' in m ? m.utilization : 0
-  if (utilization > 0.9) return 'high'
-  if (utilization > 0.7) return 'medium'
+  if (utilization > 90) return 'high'
+  if (utilization > 70) return 'medium'
   return 'low'
 }
