@@ -1,10 +1,11 @@
 import { Command } from 'commander'
 import { config } from 'dotenv'
-import { marketsCommand } from './commands/markets'
-import { pricesCommand } from './commands/prices'
-import { userPositionsCommand } from './commands/user-positions'
-import { createClient } from './config/chain'
-import type { OutputFormat } from './output'
+import { marketsCommand } from './commands/markets.js'
+import { pricesCommand } from './commands/prices.js'
+import { strategiesCommand } from './commands/strategies.js'
+import { userPositionsCommand } from './commands/user-positions.js'
+import { createClient } from './config/chain.js'
+import type { OutputFormat } from './output.js'
 
 config({ debug: false })
 
@@ -56,6 +57,20 @@ program
       // biome-ignore lint/complexity/useLiteralKeys: TS noPropertyAccessFromIndexSignature requires bracket notation
       const defaultAddress = (program.opts()['address'] as string | undefined) ?? process.env['HYPURR_USER_ADDRESS']
       await userPositionsCommand(getClient(), address ?? defaultAddress ?? '', getFormat())
+    } catch (err) {
+      console.error('Error:', err)
+      process.exit(1)
+    }
+  })
+
+program
+  .command('strategies')
+  .description('List earn vault strategies with allocations and APYs')
+  .option('-a, --asset <symbol>', 'Filter by vault asset (e.g. USDC, WHYPE)')
+  .option('--vault <address>', 'Filter by vault address')
+  .action(async (opts) => {
+    try {
+      await strategiesCommand(getClient(), opts, getFormat())
     } catch (err) {
       console.error('Error:', err)
       process.exit(1)
