@@ -14,7 +14,7 @@ import { healthCheck, liquidationPrice, stressTest } from './prompts/risk.js'
 import { findEarnStrategies, maximizeYield, optimizePortfolioYield } from './prompts/yield.js'
 
 const server = new McpServer(
-  { name: 'hypurrfi-data', version: '0.2.0' },
+  { name: 'hypurrfi-data', version: '0.3.0' },
   {
     instructions: [
       'HyperEVM lending market data. All APY and utilization values are pre-formatted as strings with a % suffix (e.g. "7.19%").',
