@@ -4,7 +4,8 @@
   "description": "HypurrFi lending protocol data API for agents — yields, borrows, positions, and prices",
   "type": "module",
   "bin": {
-    "hypurr-data": "./dist/index.mjs"
+    "hypurr-data": "./dist/index.mjs",
+    "hypurr-data-mcp": "./dist/mcp/server.mjs"
   },
   "exports": {
     ".": {
@@ -13,20 +14,25 @@
       "require": "./dist/index.cjs"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsdown",
     "dev": "tsx src/index.ts",
     "start": "node dist/index.mjs",
+    "dev:mcp": "tsx src/mcp/server.ts",
     "check": "biome check .",
     "check:fix": "biome check --write --unsafe .",
     "type-check": "tsc --pretty --noEmit",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.27.1",
     "commander": "^13.1.0",
     "dotenv": "16.3.1",
-    "viem": "^2.38.0"
+    "viem": "^2.38.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@tsconfig/node18": "~18.2.2",
