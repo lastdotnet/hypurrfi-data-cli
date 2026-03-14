@@ -1,11 +1,13 @@
 import { type Address, type PublicClient, formatUnits } from 'viem'
-import { fetchIsolatedMarkets } from '../fetchers/isolated'
-import { fetchMewlerEarnVaults } from '../fetchers/mewler-earn'
-import { fetchMewlerLendMarkets } from '../fetchers/mewler-lend'
-import { fetchPooledMarkets } from '../fetchers/pooled'
-import { fetchAaveOraclePrices, fetchAssetPrices } from '../fetchers/prices'
-import { type OutputFormat, error, print, printCSV, success } from '../output'
-import type { EModeCategoryInfo, IsolatedMarket, Market, MarketType, MewlerLendMarket, PooledMarket } from '../types'
+import { fetchIsolatedMarkets } from '../fetchers/isolated.js'
+import { fetchMewlerEarnVaults } from '../fetchers/mewler-earn.js'
+import { fetchMewlerLendMarkets } from '../fetchers/mewler-lend.js'
+import { fetchPooledMarkets } from '../fetchers/pooled.js'
+import { fetchAaveOraclePrices, fetchAssetPrices } from '../fetchers/prices.js'
+import { type OutputFormat, print, printCSV, success } from '../output.js'
+import type { EModeCategoryInfo, IsolatedMarket, Market, MarketType, MewlerLendMarket, PooledMarket } from '../types.js'
+
+import { normalizeSymbol } from '../mcp/utils.js'
 
 const VALID_MARKET_TYPES: ReadonlySet<string> = new Set<MarketType>([
   'pooled',
@@ -31,18 +33,30 @@ function getTVL(m: Market): number {
   return m.totalAssetsUSD
 }
 
-interface MarketsOptions {
-  type?: string
-  asset?: string
-  minTvl?: string
-  sort?: string
-  limit?: string
+export interface MarketsOptions {
+  type?: string | undefined
+  asset?: string | undefined
+  minTvl?: string | undefined
+  sort?: string | undefined
+  limit?: string | undefined
 }
 
-export async function marketsCommand(client: PublicClient, opts: MarketsOptions, format: OutputFormat = 'json'): Promise<void> {
+export interface MarketsData {
+  summary: {
+    totalMarkets: number
+    totalsUSD: { supplied: number; borrowed: number; available: number }
+    filters: { type: string | null; asset: string | null; minTvl: number; sort: string; limit: number | null }
+    byType: Record<string, number>
+    pooledInfo?: { eModeCategories: (EModeCategoryInfo & { assets: string[] })[] }
+    apyBasis: Record<string, string>
+    markets: Market[]
+  }
+  warnings: string[]
+}
+
+export async function fetchMarketsData(client: PublicClient, opts: MarketsOptions): Promise<MarketsData> {
   if (opts.type && !VALID_MARKET_TYPES.has(opts.type)) {
-    print(error(`Invalid market type "${opts.type}". Valid types: pooled, mewler-prime, mewler-yield, mewler-earn, isolated.`))
-    process.exit(1)
+    throw new Error(`Invalid market type "${opts.type}". Valid types: pooled, mewler-prime, mewler-yield, mewler-earn, isolated.`)
   }
   const typeFilter = opts.type as MarketType | undefined
   const assetFilter = opts.asset?.toUpperCase()
@@ -55,11 +69,6 @@ export async function marketsCommand(client: PublicClient, opts: MarketsOptions,
   computeMarketUSDValues(fetched)
 
   const results = applyFiltersAndSort(fetched, { assetFilter, minTvl, sortBy, limit })
-
-  if (format === 'csv') {
-    printCSV(results.map(flattenMarket))
-    return
-  }
 
   const nonEarnMarkets = results.filter((m) => m.type !== 'mewler-earn')
   const totalSuppliedUSD = nonEarnMarkets.reduce((sum, m) => sum + getTVL(m), 0)
@@ -99,6 +108,17 @@ export async function marketsCommand(client: PublicClient, opts: MarketsOptions,
       isolated: '365.2425d',
     },
     markets: results,
+  }
+
+  return { summary, warnings }
+}
+
+export async function marketsCommand(client: PublicClient, opts: MarketsOptions, format: OutputFormat = 'json'): Promise<void> {
+  const { summary, warnings } = await fetchMarketsData(client, opts)
+
+  if (format === 'csv') {
+    printCSV(summary.markets.map(flattenMarket))
+    return
   }
 
   print(success(summary, warnings))
@@ -343,7 +363,8 @@ function applyFiltersAndSort(markets: Market[], opts: FilterOpts): Market[] {
   let results = markets
 
   if (opts.assetFilter) {
-    results = results.filter((m) => m.assetSymbol.toUpperCase().includes(opts.assetFilter!))
+    const needle = normalizeSymbol(opts.assetFilter)
+    results = results.filter((m) => normalizeSymbol(m.assetSymbol).includes(needle))
   }
   if (opts.minTvl > 0) {
     results = results.filter((m) => getTVL(m) >= opts.minTvl)
