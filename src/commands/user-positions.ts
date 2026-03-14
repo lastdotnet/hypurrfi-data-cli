@@ -25,18 +25,11 @@ function computeNetAPY(
   return (supplyIncome - borrowCost) / equity
 }
 
-export async function userPositionsCommand(
-  client: PublicClient,
-  address: string,
-  format: OutputFormat = 'json',
-): Promise<void> {
+export async function fetchUserPositionData(client: PublicClient, address: string) {
   if (!address || !address.startsWith('0x') || address.length !== 42) {
-    print(
-      error(
-        'Invalid or missing address. Provide `user-positions <address>`, or set `--address <wallet>` / `HYPURR_USER_ADDRESS`.',
-      ),
+    throw new Error(
+      'Invalid or missing address. Provide `user-positions <address>`, or set `--address <wallet>` / `HYPURR_USER_ADDRESS`.',
     )
-    process.exit(1)
   }
 
   const positions = await fetchUserPositions(client, address as Address)
@@ -54,12 +47,7 @@ export async function userPositionsCommand(
 
   const lowestHealthFactor = healthFactors.length > 0 ? Math.min(...healthFactors) : null
 
-  if (format === 'csv') {
-    printCSV(flattenPositions(positions))
-    return
-  }
-
-  const summary = {
+  return {
     address: positions.address,
     lowestHealthFactor,
     isAtRisk: atRisk(lowestHealthFactor),
@@ -137,7 +125,29 @@ export async function userPositionsCommand(
       }),
     },
   }
+}
 
+export async function userPositionsCommand(
+  client: PublicClient,
+  address: string,
+  format: OutputFormat = 'json',
+): Promise<void> {
+  if (!address || !address.startsWith('0x') || address.length !== 42) {
+    print(
+      error(
+        'Invalid or missing address. Provide `user-positions <address>`, or set `--address <wallet>` / `HYPURR_USER_ADDRESS`.',
+      ),
+    )
+    process.exit(1)
+  }
+
+  if (format === 'csv') {
+    const positions = await fetchUserPositions(client, address as Address)
+    printCSV(flattenPositions(positions))
+    return
+  }
+
+  const summary = await fetchUserPositionData(client, address)
   print(success(summary))
 }
 
