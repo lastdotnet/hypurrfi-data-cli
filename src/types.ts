@@ -145,6 +145,7 @@ export interface StrategyInfo {
   shares: string
   allocationShare: number
   supplyAPY: number
+  utilization: number
   isEscrow: boolean
 }
 
