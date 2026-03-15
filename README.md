@@ -49,6 +49,7 @@ Address priority for `user-positions`: positional `<address>` > `--address` > `H
 | Command | Description |
 |---------|-------------|
 | `markets` | List, filter, and sort lending markets across all protocols |
+| `strategies` | List earn vault strategies with allocations and APYs |
 | `user-positions [address]` | Get user positions across all protocols (`address` optional if default is configured) |
 | `prices` | Fetch token prices from Mewler oracle |
 
@@ -96,6 +97,138 @@ node dist/index.mjs prices
   - `supplyCap` — raw on-chain cap value (smallest-unit string; protocol-specific sentinel values like `MAX_UINT*` may indicate uncapped)
   - `borrowCap` — raw on-chain cap value (smallest-unit string; protocol-specific sentinel values like `MAX_UINT*` may indicate uncapped)
 
+## MCP Server
+
+The package includes an [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server that exposes HyperEVM lending data to AI agents like Claude. All data is fetched on-chain in real time.
+
+### Setup
+
+**Homebrew:**
+
+```bash
+brew tap lastdotnet/last-taproom
+brew install hypurrfi-data-cli
+```
+
+**Claude Code:**
+
+```bash
+claude mcp add hypurrfi hypurr-data-mcp
+```
+
+**Claude Desktop** — add to your config:
+
+```json
+{
+  "mcpServers": {
+    "hypurrfi": {
+      "command": "hypurr-data-mcp"
+    }
+  }
+}
+```
+
+**Development:**
+
+```bash
+pnpm dev:mcp
+```
+
+### Tools
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `get_markets` | List lending markets with filtering and sorting | `type?`, `asset?`, `minTvl?`, `sort?`, `limit?` |
+| `get_user_positions` | Get user portfolio across all protocols | `address` |
+| `get_prices` | Get token prices from HyperEVM oracles | `tokens?` |
+| `get_strategies` | List earn vault strategies with allocations and APYs | `asset?`, `vault?` |
+
+**`get_markets` parameters:**
+- `type` — Filter by market type: `pooled`, `mewler-prime`, `mewler-yield`, `mewler-earn`, `isolated`
+- `asset` — Filter by asset symbol (e.g. `USDC`, `WHYPE`). Fuzzy-matches Unicode variants (e.g. `USD₮0`)
+- `minTvl` — Minimum TVL in USD (e.g. `10000`)
+- `sort` — Sort by: `tvl` (default), `supply-apy`, `borrow-apy`
+- `limit` — Max results (default 20)
+
+### Resources
+
+Static and parameterized data endpoints that MCP clients can browse:
+
+| Resource | URI | Description |
+|----------|-----|-------------|
+| All markets | `hypurr://markets` | All markets with compact summaries |
+| Markets by type | `hypurr://markets/{type}` | Markets filtered by type |
+| Market by address | `hypurr://market/{address}` | Full detail for a single market |
+| All strategies | `hypurr://strategies` | All earn vault strategies |
+| Strategies by asset | `hypurr://strategies/{asset}` | Strategies filtered by asset |
+| Positions by address | `hypurr://positions/{address}` | User positions across all protocols |
+| All prices | `hypurr://prices` | All token prices |
+| Price by symbol | `hypurr://price/{symbol}` | Price for a single token |
+
+### Prompts
+
+Prompts are compound, intent-based queries that fetch data from multiple sources and return structured recommendations. They are designed to be used as conversation starters with an AI agent.
+
+#### Yield Optimization
+
+| Prompt | Description | Parameters |
+|--------|-------------|------------|
+| `maximize_yield` | Find the highest risk-adjusted yield for a token across all protocols | `token` |
+| `optimize_portfolio_yield` | Analyze a wallet's positions and suggest reallocation moves to improve yield | `address` |
+| `find_earn_strategies` | Show the best curated earn vault strategies for a token | `token` |
+
+#### Borrowing
+
+| Prompt | Description | Parameters |
+|--------|-------------|------------|
+| `cheapest_borrow` | Compare borrow APYs across all protocols for a token | `token` |
+| `borrow_against_position` | Calculate borrow capacity given collateral and recommend cheapest rates | `address`, `borrowToken`, `collateralToken`, `targetLTV` |
+| `leverage_loop` | Calculate net APY of looping (supply + borrow same token) at given leverage | `token`, `leverage` |
+
+#### Risk Management
+
+| Prompt | Description | Parameters |
+|--------|-------------|------------|
+| `health_check` | Assess liquidation risk across all positions for a wallet | `address` |
+| `liquidation_price` | Calculate the price level that triggers liquidation per position | `address`, `token?` |
+| `stress_test` | Simulate a price drop and show impact on health factors | `address`, `token`, `dropPercent` |
+
+#### Comparison
+
+| Prompt | Description | Parameters |
+|--------|-------------|------------|
+| `compare_protocols` | Side-by-side comparison of supply/borrow rates across all protocols for a token | `token` |
+
+### Example Queries
+
+These are natural-language queries you can ask an AI agent with the MCP server connected:
+
+**Yield:**
+- "Where can I get the best yield on my USDC?"
+- "I have a portfolio at 0x1234...abcd — am I leaving yield on the table?"
+- "Show me earn vault strategies for WHYPE"
+
+**Borrowing:**
+- "What's the cheapest place to borrow USDC right now?"
+- "I want to borrow USDC against my WHYPE collateral at 50% LTV — what are my options?"
+- "What's the net APY if I loop USDC at 3x leverage?"
+
+**Risk:**
+- "Check the health of my positions at 0x1234...abcd"
+- "At what price does my WHYPE collateral get liquidated?"
+- "If WHYPE drops 30%, will any of my positions get liquidated?"
+
+**Comparison:**
+- "Compare USDC rates across all protocols"
+
+**Compound intents** (multi-step queries that combine tools and prompts):
+- "Find the cheapest place to borrow USDC, then show me earn strategies I could deposit it into for a positive carry"
+- "Check my portfolio at 0x1234...abcd — if any positions have a health factor below 1.3, show me what price drop would liquidate them"
+- "I want to loop WHYPE at 2.5x leverage — compare the net APY across protocols and flag any with utilization above 90%"
+- "What's the best yield on USDC right now? Compare that to borrowing USDC and looping at 2x — which nets more?"
+- "Scan my positions at 0x1234...abcd, find any tokens where I'm earning below the market best, and suggest where to move them"
+- "Stress test my portfolio against a 25% WHYPE drop, then recommend borrows I should repay to stay above 1.2 health factor"
+
 ## Agent Integration (OpenClaw)
 
 Full response schemas, field descriptions, and decision-making workflows are documented in the OpenClaw skill:
@@ -126,8 +259,17 @@ src/
 │   └── user.ts           # Cross-protocol user positions
 ├── commands/
 │   ├── markets.ts        # Unified market listing with filters & sorting
+│   ├── strategies.ts     # Earn vault strategy listing
 │   ├── user-positions.ts
 │   └── prices.ts
+├── mcp/
+│   ├── server.ts         # MCP server entry point (stdio transport)
+│   ├── utils.ts          # Shared utilities (normalizeSymbol, meta)
+│   └── prompts/
+│       ├── yield.ts      # maximize_yield, optimize_portfolio, find_earn_strategies
+│       ├── borrowing.ts  # cheapest_borrow, borrow_against_position, leverage_loop
+│       ├── risk.ts       # health_check, liquidation_price, stress_test
+│       └── comparison.ts # compare_protocols
 └── skills/
     └── hypurr-data/
         └── SKILL.md      # OpenClaw agent skill
