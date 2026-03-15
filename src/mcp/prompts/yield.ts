@@ -111,7 +111,11 @@ export async function findEarnStrategies(client: PublicClient, token: string) {
     details: {
       curator: m.curator,
       performanceFee: m.performanceFee,
-      strategies: m.strategies,
+      strategies: m.strategies.map((s) => ({
+        ...s,
+        allocationPct: s.allocationShare * 100,
+        allocationShare: undefined,
+      })),
       totalAssetsUSD: m.totalAssetsUSD,
     },
   }))
