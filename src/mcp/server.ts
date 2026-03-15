@@ -40,7 +40,7 @@ function fmtPct(v: number): string {
 /** Keys that contain percentage values and should be formatted with % suffix. */
 const PCT_KEYS = new Set([
   'apy', 'supplyAPY', 'borrowAPY', 'supplyAPYPct', 'borrowAPYPct',
-  'utilization', 'utilizationPct', 'allocationShare',
+  'utilization', 'utilizationPct', 'allocationPct',
   'currentAPY', 'bestAPY', 'deltaAPY', 'netAPY', 'cheapestAPY', 'bestNetAPY',
   'bestSupplyAPY', 'bestBorrowAPY', 'totalDeltaAPY',
   'maxLTV', 'liquidationLTV', 'liquidationThreshold', 'ltv', 'targetLTV',
