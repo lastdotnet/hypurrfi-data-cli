@@ -1,11 +1,11 @@
 import { type Address, type PublicClient, formatUnits } from 'viem'
-import { isolatedBorrowAPY, isolatedDepositAPY } from '../calculations/apy.js'
-import { fraxOracleAbi, isolatedPairAbi, isolatedRegistryAbi } from '../config/abis.js'
-import { DEFAULT_DECIMALS, ISOLATED_LTV_PRECISION } from '../config/constants.js'
-import { ISOLATED_REGISTRY_ADDRESS } from '../config/contracts.js'
-import type { IsolatedMarket, IsolatedRateInfo, IsolatedUserPosition } from '../types.js'
-import { fetchTokenMetadata } from '../utils/token-metadata.js'
-import { fetchAssetPrices } from './prices.js'
+import { isolatedBorrowAPY, isolatedDepositAPY } from '../calculations/apy'
+import { fraxOracleAbi, isolatedPairAbi, isolatedRegistryAbi } from '../config/abis'
+import { DEFAULT_DECIMALS, ISOLATED_LTV_PRECISION } from '../config/constants'
+import { ISOLATED_REGISTRY_ADDRESS } from '../config/contracts'
+import type { IsolatedMarket, IsolatedRateInfo, IsolatedUserPosition } from '../types'
+import { fetchTokenMetadata } from '../utils/token-metadata'
+import { fetchAssetPrices } from './prices'
 
 const FIELDS_PER_PAIR = 10
 

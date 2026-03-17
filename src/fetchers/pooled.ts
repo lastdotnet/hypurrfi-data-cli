@@ -1,9 +1,9 @@
 import { type Address, type PublicClient, formatUnits, erc20Abi as viemErc20Abi } from 'viem'
-import { rayRateToAPY } from '../calculations/apy.js'
-import { aaveOracleAbi, addressProviderAbi, poolAbi } from '../config/abis.js'
-import { AAVE_ORACLE_DECIMALS, DEFAULT_DECIMALS } from '../config/constants.js'
-import { POOL_ADDRESS, POOL_ADDRESS_PROVIDER } from '../config/contracts.js'
-import type { EModeCategoryInfo, PooledAssetPosition, PooledMarket, PooledUserPosition } from '../types.js'
+import { rayRateToAPY } from '../calculations/apy'
+import { aaveOracleAbi, addressProviderAbi, poolAbi } from '../config/abis'
+import { AAVE_ORACLE_DECIMALS, DEFAULT_DECIMALS } from '../config/constants'
+import { POOL_ADDRESS, POOL_ADDRESS_PROVIDER } from '../config/contracts'
+import type { EModeCategoryInfo, PooledAssetPosition, PooledMarket, PooledUserPosition } from '../types'
 
 // ── Config bit decoders ────────────────────────────────────────────
 

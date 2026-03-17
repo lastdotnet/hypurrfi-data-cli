@@ -5,12 +5,12 @@ import {
   fraxOracleAbi,
   isolatedPairAbi,
   isolatedRegistryAbi,
-} from '../config/abis.js'
-import { AAVE_ORACLE_DECIMALS, DEFAULT_DECIMALS, PRICE_DECIMALS } from '../config/constants.js'
-import { ISOLATED_REGISTRY_ADDRESS, KNOWN_TOKENS, POOL_ADDRESS_PROVIDER } from '../config/contracts.js'
-import { LENS_ADDRESSES, vaultLensAbi } from '../config/lens-abis.js'
-import type { TokenPrice, VaultLensInfo } from '../types.js'
-import { discoverMewlerLendVaults } from '../utils/vault-discovery.js'
+} from '../config/abis'
+import { AAVE_ORACLE_DECIMALS, DEFAULT_DECIMALS, PRICE_DECIMALS } from '../config/constants'
+import { ISOLATED_REGISTRY_ADDRESS, KNOWN_TOKENS, POOL_ADDRESS_PROVIDER } from '../config/contracts'
+import { LENS_ADDRESSES, vaultLensAbi } from '../config/lens-abis'
+import type { TokenPrice, VaultLensInfo } from '../types'
+import { discoverMewlerLendVaults } from '../utils/vault-discovery'
 
 /**
  * Fetch USD prices for a set of assets using vault-specific oracles.

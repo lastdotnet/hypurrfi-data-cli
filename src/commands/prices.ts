@@ -1,6 +1,6 @@
 import type { Address, PublicClient } from 'viem'
-import { fetchKnownTokenPrices, fetchTokenPrices } from '../fetchers/prices.js'
-import { type OutputFormat, print, printCSV, success } from '../output.js'
+import { fetchKnownTokenPrices, fetchTokenPrices } from '../fetchers/prices'
+import { type OutputFormat, print, printCSV, success } from '../output'
 
 interface PricesOptions {
   tokens?: string

@@ -1,4 +1,4 @@
-import { APY_RAY_DECIMALS, EULER_FEE_SCALE, ISOLATED_RATE_PRECISION } from '../config/constants.js'
+import { APY_RAY_DECIMALS, EULER_FEE_SCALE, ISOLATED_RATE_PRECISION } from '../config/constants'
 
 /** Pooled uses 365 days (matches FE pooledDataFetcher.ts) */
 const POOLED_SECONDS_PER_YEAR = 60 * 60 * 24 * 365 // 31,536,000

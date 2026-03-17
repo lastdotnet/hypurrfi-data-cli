@@ -1,7 +1,7 @@
 import type { Address, PublicClient } from 'viem'
-import { HEALTH_FACTOR_RISK_THRESHOLD } from '../config/constants.js'
-import { fetchUserPositions } from '../fetchers/user.js'
-import { type OutputFormat, error, print, printCSV, success } from '../output.js'
+import { HEALTH_FACTOR_RISK_THRESHOLD } from '../config/constants'
+import { fetchUserPositions } from '../fetchers/user'
+import { type OutputFormat, error, print, printCSV, success } from '../output'
 
 /** Collateral USD value at which liquidation triggers (HF = 1). */
 function liquidationThresholdUSD(collateralUSD: number, hf: number | null): number | null {
@@ -143,7 +143,7 @@ export async function userPositionsCommand(
 
 // ── CSV flattening ────────────────────────────────────────────────
 
-import type { UserPositionSummary } from '../types.js'
+import type { UserPositionSummary } from '../types'
 
 function flattenPositions(pos: UserPositionSummary): Record<string, unknown>[] {
   const rows: Record<string, unknown>[] = []

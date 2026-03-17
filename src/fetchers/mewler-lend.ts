@@ -1,11 +1,11 @@
 import type { Address, PublicClient } from 'viem'
 import { formatUnits } from 'viem'
-import { CHAIN_ID } from '../config/chain.js'
-import { EULER_FEE_SCALE, LTV_BPS_DIVISOR } from '../config/constants.js'
-import { resolveEntity, resolveMarket, resolveMewlerLendType } from '../config/contracts.js'
-import { LENS_ADDRESSES, vaultLensAbi } from '../config/lens-abis.js'
-import type { MewlerLendMarket, MewlerVaultLTVInfo, VaultLensInfo } from '../types.js'
-import { discoverMewlerLendVaults } from '../utils/vault-discovery.js'
+import { CHAIN_ID } from '../config/chain'
+import { EULER_FEE_SCALE, LTV_BPS_DIVISOR } from '../config/constants'
+import { resolveEntity, resolveMarket, resolveMewlerLendType } from '../config/contracts'
+import { LENS_ADDRESSES, vaultLensAbi } from '../config/lens-abis'
+import type { MewlerLendMarket, MewlerVaultLTVInfo, VaultLensInfo } from '../types'
+import { discoverMewlerLendVaults } from '../utils/vault-discovery'
 
 type MewlerLendType = 'mewler-prime' | 'mewler-yield'
 
