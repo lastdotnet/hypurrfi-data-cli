@@ -1,6 +1,6 @@
 {
   "name": "@hypurrfi/data-cli",
-  "version": "0.2.0",
+  "version": "0.3.1",
   "description": "HypurrFi lending protocol data API for agents — yields, borrows, positions, and prices",
   "type": "module",
   "bin": {
@@ -13,12 +13,13 @@
       "require": "./dist/index.cjs"
     },
     "./lib": {
+      "typescript": "./src/lib.ts",
       "types": "./dist/lib.d.mts",
       "import": "./dist/lib.mjs",
       "require": "./dist/lib.cjs"
     }
   },
-  "files": ["dist"],
+  "files": ["dist", "src"],
   "scripts": {
     "build": "tsdown",
     "dev": "tsx src/index.ts",

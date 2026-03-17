@@ -13,7 +13,7 @@ const program = new Command()
 program
   .name('hypurr-data')
   .description('HypurrFi lending protocol data API for agents — yields, borrows, positions, and prices on HyperEVM')
-  .version('0.2.0')
+  .version('0.3.1')
   .option('--rpc <url>', 'Custom RPC URL')
   .option('--address <wallet>', 'Default user wallet address (fallback for user-positions)')
   .option('--format <format>', 'Output format: json (default) | csv', 'json')
