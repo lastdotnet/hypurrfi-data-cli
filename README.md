@@ -96,6 +96,44 @@ node dist/index.mjs prices
   - `supplyCap` — raw on-chain cap value (smallest-unit string; protocol-specific sentinel values like `MAX_UINT*` may indicate uncapped)
   - `borrowCap` — raw on-chain cap value (smallest-unit string; protocol-specific sentinel values like `MAX_UINT*` may indicate uncapped)
 
+## Library Usage (Programmatic)
+
+You can import the fetchers directly as a library instead of running the CLI:
+
+```typescript
+import {
+  createClient,
+  fetchPooledMarkets,
+  fetchKnownTokenPrices,
+  fetchUserPositions,
+} from '@hypurrfi/data-cli/lib'
+import type { PooledMarket, TokenPrice } from '@hypurrfi/data-cli/lib'
+
+const client = createClient() // uses HYPEREVM_RPC_URL env or public RPC
+const markets = await fetchPooledMarkets(client)
+const prices = await fetchKnownTokenPrices(client)
+const positions = await fetchUserPositions(client, '0x1234...abcd')
+```
+
+All fetcher functions accept a viem `PublicClient` as the first argument, so you can create one client and reuse it across calls.
+
+### Available Exports
+
+| Export | Description |
+|--------|-------------|
+| `createClient(rpcUrl?)` | Create a viem PublicClient for HyperEVM |
+| `fetchPooledMarkets(client)` | Pooled (Aave) lending markets |
+| `fetchMewlerLendMarkets(client)` | Mewler Prime & Yield lending vaults |
+| `fetchMewlerEarnVaults(client)` | Mewler Earn curated vaults |
+| `fetchIsolatedMarkets(client)` | Isolated lending pairs |
+| `fetchKnownTokenPrices(client)` | Prices for all known tokens |
+| `fetchTokenPrices(client, addresses)` | Prices for specific token addresses |
+| `fetchUserPositions(client, address)` | Cross-protocol user positions |
+| `fetchPooledUserPosition(client, address)` | Pooled-only user position |
+| `fetchIsolatedUserPositions(client, address)` | Isolated-only user positions |
+
+All types (`PooledMarket`, `MewlerLendMarket`, `TokenPrice`, `UserPositionSummary`, etc.) are also exported.
+
 ## Agent Integration (OpenClaw)
 
 Full response schemas, field descriptions, and decision-making workflows are documented in the OpenClaw skill:
@@ -109,6 +147,7 @@ Install the skill into your OpenClaw agent's workspace to enable HypurrFi lendin
 ```
 src/
 ├── index.ts              # CLI entry (commander)
+├── lib.ts                # Library entry (programmatic imports)
 ├── output.ts             # JSON response formatting
 ├── types.ts              # Shared types
 ├── config/
