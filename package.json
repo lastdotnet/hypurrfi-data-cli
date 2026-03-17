@@ -13,8 +13,10 @@
       "require": "./dist/index.cjs"
     },
     "./lib": {
-      "types": "./src/lib.ts",
-      "import": "./src/lib.ts"
+      "typescript": "./src/lib.ts",
+      "types": "./dist/lib.d.mts",
+      "import": "./dist/lib.mjs",
+      "require": "./dist/lib.cjs"
     }
   },
   "files": ["dist", "src"],
