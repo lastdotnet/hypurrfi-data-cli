@@ -13,12 +13,11 @@
       "require": "./dist/index.cjs"
     },
     "./lib": {
-      "types": "./dist/lib.d.mts",
-      "import": "./dist/lib.mjs",
-      "require": "./dist/lib.cjs"
+      "types": "./src/lib.ts",
+      "import": "./src/lib.ts"
     }
   },
-  "files": ["dist"],
+  "files": ["dist", "src"],
   "scripts": {
     "build": "tsdown",
     "dev": "tsx src/index.ts",
