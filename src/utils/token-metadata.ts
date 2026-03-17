@@ -1,5 +1,5 @@
 import { type Address, type PublicClient, erc20Abi } from 'viem'
-import { DEFAULT_DECIMALS } from '../config/constants.js'
+import { DEFAULT_DECIMALS } from '../config/constants'
 
 export interface TokenMeta {
   symbol: string

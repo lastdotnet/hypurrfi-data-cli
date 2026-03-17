@@ -1,9 +1,9 @@
 import { type Address, type PublicClient, formatUnits } from 'viem'
-import { calculateUtilization, eulerBorrowAPY, eulerSupplyAPY } from '../calculations/apy.js'
-import { accountLensAbi, eEarnVaultAbi, eVaultAbi, eulerOraclePriceAbi, evcAbi } from '../config/abis.js'
-import { DEFAULT_DECIMALS, PRICE_DECIMALS } from '../config/constants.js'
-import { EVC_ADDRESS, MEWLER_USD_UNIT_OF_ACCOUNT, resolveMarket } from '../config/contracts.js'
-import { LENS_ADDRESSES } from '../config/lens-abis.js'
+import { calculateUtilization, eulerBorrowAPY, eulerSupplyAPY } from '../calculations/apy'
+import { accountLensAbi, eEarnVaultAbi, eVaultAbi, eulerOraclePriceAbi, evcAbi } from '../config/abis'
+import { DEFAULT_DECIMALS, PRICE_DECIMALS } from '../config/constants'
+import { EVC_ADDRESS, MEWLER_USD_UNIT_OF_ACCOUNT, resolveMarket } from '../config/contracts'
+import { LENS_ADDRESSES } from '../config/lens-abis'
 import type {
   AccountLensInfo,
   MewlerBorrowPosition,
@@ -11,12 +11,12 @@ import type {
   MewlerEarnPosition,
   MewlerSubAccountPosition,
   UserPositionSummary,
-} from '../types.js'
-import { fetchTokenMetadata } from '../utils/token-metadata.js'
-import { discoverMewlerEarnVaults, discoverMewlerLendVaults } from '../utils/vault-discovery.js'
-import { fetchIsolatedUserPositions } from './isolated.js'
-import { fetchPooledUserPosition } from './pooled.js'
-import { fetchAaveOraclePrices, fetchAssetPrices } from './prices.js'
+} from '../types'
+import { fetchTokenMetadata } from '../utils/token-metadata'
+import { discoverMewlerEarnVaults, discoverMewlerLendVaults } from '../utils/vault-discovery'
+import { fetchIsolatedUserPositions } from './isolated'
+import { fetchPooledUserPosition } from './pooled'
+import { fetchAaveOraclePrices, fetchAssetPrices } from './prices'
 
 function getSubAccountAddress(owner: Address, subAccountId: number): Address {
   if (subAccountId === 0) return owner

@@ -21,6 +21,7 @@
   },
   "files": ["dist", "src"],
   "scripts": {
+    "prepublishOnly": "tsdown",
     "build": "tsdown",
     "dev": "tsx src/index.ts",
     "start": "node dist/index.mjs",

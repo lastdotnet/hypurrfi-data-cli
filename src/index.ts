@@ -1,10 +1,10 @@
 import { Command } from 'commander'
 import { config } from 'dotenv'
-import { marketsCommand } from './commands/markets.js'
-import { pricesCommand } from './commands/prices.js'
-import { userPositionsCommand } from './commands/user-positions.js'
-import { createClient } from './config/chain.js'
-import type { OutputFormat } from './output.js'
+import { marketsCommand } from './commands/markets'
+import { pricesCommand } from './commands/prices'
+import { userPositionsCommand } from './commands/user-positions'
+import { createClient } from './config/chain'
+import type { OutputFormat } from './output'
 
 config({ debug: false })
 

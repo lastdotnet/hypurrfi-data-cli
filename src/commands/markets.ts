@@ -1,11 +1,11 @@
 import { type Address, type PublicClient, formatUnits } from 'viem'
-import { fetchIsolatedMarkets } from '../fetchers/isolated.js'
-import { fetchMewlerEarnVaults } from '../fetchers/mewler-earn.js'
-import { fetchMewlerLendMarkets } from '../fetchers/mewler-lend.js'
-import { fetchPooledMarkets } from '../fetchers/pooled.js'
-import { fetchAaveOraclePrices, fetchAssetPrices } from '../fetchers/prices.js'
-import { type OutputFormat, error, print, printCSV, success } from '../output.js'
-import type { EModeCategoryInfo, IsolatedMarket, Market, MarketType, MewlerLendMarket, PooledMarket } from '../types.js'
+import { fetchIsolatedMarkets } from '../fetchers/isolated'
+import { fetchMewlerEarnVaults } from '../fetchers/mewler-earn'
+import { fetchMewlerLendMarkets } from '../fetchers/mewler-lend'
+import { fetchPooledMarkets } from '../fetchers/pooled'
+import { fetchAaveOraclePrices, fetchAssetPrices } from '../fetchers/prices'
+import { type OutputFormat, error, print, printCSV, success } from '../output'
+import type { EModeCategoryInfo, IsolatedMarket, Market, MarketType, MewlerLendMarket, PooledMarket } from '../types'
 
 const VALID_MARKET_TYPES: ReadonlySet<string> = new Set<MarketType>([
   'pooled',

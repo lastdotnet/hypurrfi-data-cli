@@ -1,6 +1,6 @@
 import type { Address, PublicClient } from 'viem'
-import { perspectiveAbi } from '../config/abis.js'
-import { PERSPECTIVES } from '../config/contracts.js'
+import { perspectiveAbi } from '../config/abis'
+import { PERSPECTIVES } from '../config/contracts'
 
 /**
  * Discover all Mewler lending vaults (governed + edgeFactory, minus earn vaults).

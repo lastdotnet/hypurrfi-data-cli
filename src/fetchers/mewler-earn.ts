@@ -1,10 +1,10 @@
 import type { PublicClient } from 'viem'
-import { CHAIN_ID } from '../config/chain.js'
-import { PERFORMANCE_FEE_PRECISION } from '../config/constants.js'
-import { resolveEntity, resolveMarket } from '../config/contracts.js'
-import { LENS_ADDRESSES, eulerEarnVaultLensAbi } from '../config/lens-abis.js'
-import type { EarnVaultLensInfo, MewlerEarnVault, MewlerLendMarket, StrategyInfo } from '../types.js'
-import { discoverMewlerEarnVaults } from '../utils/vault-discovery.js'
+import { CHAIN_ID } from '../config/chain'
+import { PERFORMANCE_FEE_PRECISION } from '../config/constants'
+import { resolveEntity, resolveMarket } from '../config/contracts'
+import { LENS_ADDRESSES, eulerEarnVaultLensAbi } from '../config/lens-abis'
+import type { EarnVaultLensInfo, MewlerEarnVault, MewlerLendMarket, StrategyInfo } from '../types'
+import { discoverMewlerEarnVaults } from '../utils/vault-discovery'
 
 export async function fetchMewlerEarnVaults(
   client: PublicClient,
