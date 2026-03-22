@@ -38,6 +38,18 @@ export async function borrowAgainstPosition(
       }
     }
   }
+  for (const p of positionData.mewler.positions) {
+    for (const c of p.collaterals) {
+      if (normalizeSymbol(c.assetSymbol) === collateralUpper) {
+        collateralUSD += c.balanceUSD
+      }
+    }
+  }
+  for (const p of positionData.isolated.positions) {
+    if (normalizeSymbol(p.collateralSymbol) === collateralUpper) {
+      collateralUSD += p.collateralUSD
+    }
+  }
 
   const recommendations = borrowMarkets.map((m) => {
     const maxBorrowUSD = collateralUSD * targetLTV

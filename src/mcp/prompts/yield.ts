@@ -43,7 +43,9 @@ export async function optimizePortfolioYield(client: PublicClient, address: stri
   ])
 
   const bestRateByToken = new Map<string, { apy: number; protocol: string; market: string }>()
+  const marketRateByAddress = new Map<string, number>()
   for (const m of marketsData.markets) {
+    marketRateByAddress.set(m.address.toLowerCase(), m.supplyAPY)
     const sym = normalizeSymbol(m.assetSymbol)
     const existing = bestRateByToken.get(sym)
     if (!existing || m.supplyAPY > existing.apy) {
@@ -77,6 +79,58 @@ export async function optimizePortfolioYield(client: PublicClient, address: stri
           bestMarket: best.market,
         })
       }
+    }
+  }
+
+  for (const p of positionData.mewler.positions) {
+    for (const c of p.collaterals) {
+      const best = bestRateByToken.get(normalizeSymbol(c.assetSymbol))
+      if (best && best.apy > c.supplyAPY) {
+        recommendations.push({
+          action: 'reallocate',
+          token: c.assetSymbol,
+          currentAPY: c.supplyAPY,
+          bestAPY: best.apy,
+          deltaAPY: best.apy - c.supplyAPY,
+          currentProtocol: 'mewler',
+          bestProtocol: best.protocol,
+          bestMarket: best.market,
+        })
+      }
+    }
+  }
+
+  for (const p of positionData.mewlerEarn.positions) {
+    const currentAPY = marketRateByAddress.get(p.vaultAddress.toLowerCase()) ?? 0
+    const best = bestRateByToken.get(normalizeSymbol(p.assetSymbol))
+    if (best && best.apy > currentAPY) {
+      recommendations.push({
+        action: 'reallocate',
+        token: p.assetSymbol,
+        currentAPY,
+        bestAPY: best.apy,
+        deltaAPY: best.apy - currentAPY,
+        currentProtocol: 'mewler-earn',
+        bestProtocol: best.protocol,
+        bestMarket: best.market,
+      })
+    }
+  }
+
+  for (const p of positionData.isolated.positions) {
+    if (p.depositUSD <= 0) continue
+    const best = bestRateByToken.get(normalizeSymbol(p.assetSymbol))
+    if (best && best.apy > p.supplyAPY) {
+      recommendations.push({
+        action: 'reallocate',
+        token: p.assetSymbol,
+        currentAPY: p.supplyAPY,
+        bestAPY: best.apy,
+        deltaAPY: best.apy - p.supplyAPY,
+        currentProtocol: 'isolated',
+        bestProtocol: best.protocol,
+        bestMarket: best.market,
+      })
     }
   }
 
