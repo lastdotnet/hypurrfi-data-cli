@@ -2,7 +2,7 @@ import type { PublicClient } from 'viem'
 import { fetchMarketsData } from '../../commands/markets.js'
 import { fetchUserPositionData } from '../../commands/user-positions.js'
 import type { IsolatedMarket, Market, MewlerLendMarket, PooledMarket } from '../../types.js'
-import { getRiskLevel, meta } from '../utils.js'
+import { getRiskLevel, meta, normalizeSymbol } from '../utils.js'
 
 type BorrowableMarket = PooledMarket | MewlerLendMarket | IsolatedMarket
 
@@ -22,18 +22,18 @@ export async function borrowAgainstPosition(
     fetchMarketsData(client, {}),
   ])
 
-  const borrowUpper = borrowToken.toUpperCase()
-  const collateralUpper = collateralToken.toUpperCase()
+  const borrowUpper = normalizeSymbol(borrowToken)
+  const collateralUpper = normalizeSymbol(collateralToken)
 
   const borrowMarkets = marketsData.markets
     .filter(isBorrowable)
-    .filter((m) => m.assetSymbol.toUpperCase() === borrowUpper)
+    .filter((m) => normalizeSymbol(m.assetSymbol) === borrowUpper)
   borrowMarkets.sort((a, b) => a.borrowAPY - b.borrowAPY)
 
   let collateralUSD = 0
   if (positionData.pooled) {
     for (const s of positionData.pooled.supplies) {
-      if (s.assetSymbol.toUpperCase() === collateralUpper) {
+      if (normalizeSymbol(s.assetSymbol) === collateralUpper) {
         collateralUSD += s.amountUSD
       }
     }
@@ -73,10 +73,10 @@ export async function borrowAgainstPosition(
 
 export async function cheapestBorrow(client: PublicClient, token: string) {
   const { summary } = await fetchMarketsData(client, {})
-  const upper = token.toUpperCase()
+  const upper = normalizeSymbol(token)
   const matching = summary.markets
     .filter(isBorrowable)
-    .filter((m) => m.assetSymbol.toUpperCase() === upper)
+    .filter((m) => normalizeSymbol(m.assetSymbol) === upper)
   matching.sort((a, b) => a.borrowAPY - b.borrowAPY)
 
   const recommendations = matching.map((m) => ({
@@ -107,10 +107,10 @@ export async function cheapestBorrow(client: PublicClient, token: string) {
 
 export async function leverageLoop(client: PublicClient, token: string, leverage: number) {
   const { summary } = await fetchMarketsData(client, {})
-  const upper = token.toUpperCase()
+  const upper = normalizeSymbol(token)
   const matching = summary.markets
     .filter(isBorrowable)
-    .filter((m) => m.assetSymbol.toUpperCase() === upper)
+    .filter((m) => normalizeSymbol(m.assetSymbol) === upper)
 
   const recommendations = matching.map((m) => {
     const supplyAPY = m.supplyAPY

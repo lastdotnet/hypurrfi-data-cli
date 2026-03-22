@@ -1,9 +1,6 @@
 import type { Market } from '../types.js'
 
-/** Normalize token symbols for fuzzy matching (e.g. USD₮0 → USDT0) */
-export function normalizeSymbol(s: string): string {
-  return s.toUpperCase().replace(/₮/g, 'T')
-}
+export { normalizeSymbol } from '../utils/normalize.js'
 
 /** Standard metadata attached to all MCP prompt responses. */
 export function meta() {

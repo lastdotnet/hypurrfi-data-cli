@@ -1,11 +1,11 @@
 import type { PublicClient } from 'viem'
 import { fetchMarketsData } from '../../commands/markets.js'
-import { meta } from '../utils.js'
+import { meta, normalizeSymbol } from '../utils.js'
 
 export async function compareProtocols(client: PublicClient, token: string) {
   const { summary } = await fetchMarketsData(client, {})
-  const upper = token.toUpperCase()
-  const matching = summary.markets.filter((m) => m.assetSymbol.toUpperCase() === upper)
+  const upper = normalizeSymbol(token)
+  const matching = summary.markets.filter((m) => normalizeSymbol(m.assetSymbol) === upper)
 
   const recommendations = matching.map((m) => ({
     protocol: m.type,

@@ -2,13 +2,13 @@ import type { PublicClient } from 'viem'
 import { fetchMarketsData } from '../../commands/markets.js'
 import { fetchUserPositionData } from '../../commands/user-positions.js'
 import { PERFORMANCE_FEE_PRECISION } from '../../config/constants.js'
-import type { Market, MewlerEarnVault } from '../../types.js'
-import { getRiskLevel, meta } from '../utils.js'
+import type { MewlerEarnVault } from '../../types.js'
+import { getRiskLevel, meta, normalizeSymbol } from '../utils.js'
 
 export async function maximizeYield(client: PublicClient, token: string) {
   const { summary } = await fetchMarketsData(client, {})
-  const upper = token.toUpperCase()
-  const matching = summary.markets.filter((m) => m.assetSymbol.toUpperCase() === upper)
+  const upper = normalizeSymbol(token)
+  const matching = summary.markets.filter((m) => normalizeSymbol(m.assetSymbol) === upper)
   matching.sort((a, b) => b.supplyAPY - a.supplyAPY)
 
   const recommendations = matching.map((m) => ({
@@ -44,7 +44,7 @@ export async function optimizePortfolioYield(client: PublicClient, address: stri
 
   const bestRateByToken = new Map<string, { apy: number; protocol: string; market: string }>()
   for (const m of marketsData.markets) {
-    const sym = m.assetSymbol.toUpperCase()
+    const sym = normalizeSymbol(m.assetSymbol)
     const existing = bestRateByToken.get(sym)
     if (!existing || m.supplyAPY > existing.apy) {
       bestRateByToken.set(sym, { apy: m.supplyAPY, protocol: m.type, market: m.address })
@@ -64,7 +64,7 @@ export async function optimizePortfolioYield(client: PublicClient, address: stri
 
   if (positionData.pooled) {
     for (const s of positionData.pooled.supplies) {
-      const best = bestRateByToken.get(s.assetSymbol.toUpperCase())
+      const best = bestRateByToken.get(normalizeSymbol(s.assetSymbol))
       if (best && best.apy > s.apy) {
         recommendations.push({
           action: 'reallocate',
@@ -96,9 +96,9 @@ export async function optimizePortfolioYield(client: PublicClient, address: stri
 
 export async function findEarnStrategies(client: PublicClient, token: string) {
   const { summary } = await fetchMarketsData(client, { type: 'mewler-earn' })
-  const upper = token.toUpperCase()
+  const upper = normalizeSymbol(token)
   const matching = summary.markets.filter(
-    (m): m is MewlerEarnVault => m.type === 'mewler-earn' && m.assetSymbol.toUpperCase() === upper,
+    (m): m is MewlerEarnVault => m.type === 'mewler-earn' && normalizeSymbol(m.assetSymbol) === upper,
   )
   matching.sort((a, b) => b.supplyAPY - a.supplyAPY)
 
