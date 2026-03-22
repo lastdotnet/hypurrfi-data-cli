@@ -14,9 +14,9 @@ export async function fetchMewlerEarnVaults(
   const vaultAddresses = await discoverMewlerEarnVaults(client)
   if (vaultAddresses.length === 0) return []
 
-  const lendAPYMap = new Map<string, { supplyAPY: number; name: string }>()
+  const lendInfoMap = new Map<string, { supplyAPY: number; name: string; utilization: number }>()
   for (const m of lendMarkets) {
-    lendAPYMap.set(m.address.toLowerCase(), { supplyAPY: m.supplyAPY, name: m.name })
+    lendInfoMap.set(m.address.toLowerCase(), { supplyAPY: m.supplyAPY, name: m.name, utilization: m.utilization })
   }
 
   const lensCalls = vaultAddresses.map((addr) => ({
@@ -36,7 +36,7 @@ export async function fetchMewlerEarnVaults(
     if (res?.status !== 'success') continue
 
     const v = res.result as EarnVaultLensInfo
-    const { strategies, netAPY } = buildStrategies(v, lendAPYMap)
+    const { strategies, netAPY } = buildStrategies(v, lendInfoMap)
 
     vaults.push({
       address: addr,
@@ -64,7 +64,7 @@ export async function fetchMewlerEarnVaults(
 
 function buildStrategies(
   v: EarnVaultLensInfo,
-  lendAPYMap: Map<string, { supplyAPY: number; name: string }>,
+  lendInfoMap: Map<string, { supplyAPY: number; name: string; utilization: number }>,
 ): { strategies: StrategyInfo[]; netAPY: number } {
   const rawStrategies = v.strategies ?? []
   const totalAllocated = rawStrategies.reduce((sum, s) => sum + BigInt(s.allocatedAssets ?? 0), 0n)
@@ -74,9 +74,10 @@ function buildStrategies(
 
   for (const s of rawStrategies) {
     const allocatedAssets = BigInt(s.allocatedAssets ?? 0)
-    const lendInfo = lendAPYMap.get((s.strategy as string).toLowerCase())
+    const lendInfo = lendInfoMap.get((s.strategy as string).toLowerCase())
     const isEscrow = !lendInfo
     const stratSupplyAPY = lendInfo?.supplyAPY ?? 0
+    const stratUtilization = lendInfo?.utilization ?? 0
     const weight = totalAllocated > 0n ? Number(allocatedAssets) / Number(totalAllocated) : 0
 
     strategies.push({
@@ -85,6 +86,7 @@ function buildStrategies(
       shares: allocatedAssets.toString(),
       allocationShare: weight,
       supplyAPY: stratSupplyAPY,
+      utilization: stratUtilization,
       isEscrow,
     })
 
