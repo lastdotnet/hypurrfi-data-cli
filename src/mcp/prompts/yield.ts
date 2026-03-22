@@ -1,8 +1,9 @@
 import type { PublicClient } from 'viem'
 import { fetchMarketsData } from '../../commands/markets.js'
 import { fetchUserPositionData } from '../../commands/user-positions.js'
+import { PERFORMANCE_FEE_PRECISION } from '../../config/constants.js'
 import type { Market, MewlerEarnVault } from '../../types.js'
-import { meta } from '../utils.js'
+import { getRiskLevel, meta } from '../utils.js'
 
 export async function maximizeYield(client: PublicClient, token: string) {
   const { summary } = await fetchMarketsData(client, {})
@@ -110,7 +111,7 @@ export async function findEarnStrategies(client: PublicClient, token: string) {
     risk: 'low' as const,
     details: {
       curator: m.curator,
-      performanceFee: m.performanceFee,
+      performanceFee: (Number(m.performanceFee) / PERFORMANCE_FEE_PRECISION) * 100,
       strategies: m.strategies.map((s) => ({
         ...s,
         allocationPct: s.allocationShare * 100,
@@ -130,12 +131,4 @@ export async function findEarnStrategies(client: PublicClient, token: string) {
     },
     meta: meta(),
   }
-}
-
-function getRiskLevel(m: Market): 'low' | 'medium' | 'high' {
-  if (m.type === 'mewler-earn') return 'low'
-  const utilization = 'utilization' in m ? m.utilization : 0
-  if (utilization > 90) return 'high'
-  if (utilization > 70) return 'medium'
-  return 'low'
 }

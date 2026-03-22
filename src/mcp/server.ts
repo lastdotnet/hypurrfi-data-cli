@@ -44,6 +44,7 @@ const PCT_KEYS = new Set([
   'currentAPY', 'bestAPY', 'deltaAPY', 'netAPY', 'cheapestAPY', 'bestNetAPY',
   'bestSupplyAPY', 'bestBorrowAPY', 'totalDeltaAPY',
   'maxLTV', 'liquidationLTV', 'liquidationThreshold', 'ltv', 'targetLTV',
+  'performanceFee', 'bufferPercent',
 ])
 
 /** Recursively format all percentage fields in prompt/tool output as "X.XX%" strings. */
@@ -80,7 +81,7 @@ function compactMarket(m: Market) {
   if (m.type === 'mewler-earn') {
     return {
       ...base,
-      performanceFee: m.performanceFee,
+      performanceFee: fmtPct((Number(m.performanceFee) / 1e18) * 100),
       curator: m.curator,
       strategies: m.strategies.map((s) => ({
         address: s.address,

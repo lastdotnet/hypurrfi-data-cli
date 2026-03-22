@@ -2,7 +2,7 @@ import type { PublicClient } from 'viem'
 import { fetchMarketsData } from '../../commands/markets.js'
 import { fetchUserPositionData } from '../../commands/user-positions.js'
 import type { IsolatedMarket, Market, MewlerLendMarket, PooledMarket } from '../../types.js'
-import { meta } from '../utils.js'
+import { getRiskLevel, meta } from '../utils.js'
 
 type BorrowableMarket = PooledMarket | MewlerLendMarket | IsolatedMarket
 
@@ -48,7 +48,7 @@ export async function borrowAgainstPosition(
       market: m.address,
       token: m.assetSymbol,
       apy: m.borrowAPY,
-      risk: m.borrowAPY > 15 ? ('high' as const) : m.borrowAPY > 8 ? ('medium' as const) : ('low' as const),
+      risk: getRiskLevel(m),
       details: {
         maxBorrowUSD,
         maxBorrowAmount,
@@ -85,7 +85,7 @@ export async function cheapestBorrow(client: PublicClient, token: string) {
     market: m.address,
     token: m.assetSymbol,
     apy: m.borrowAPY,
-    risk: m.borrowAPY > 15 ? ('high' as const) : m.borrowAPY > 8 ? ('medium' as const) : ('low' as const),
+    risk: getRiskLevel(m),
     details: {
       availableLiquidity: m.totalAssetsUSD - m.totalBorrowsUSD,
       utilization: m.utilization,
