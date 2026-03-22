@@ -41,7 +41,7 @@ function fmtPct(v: number): string {
 const PCT_KEYS = new Set([
   'apy', 'supplyAPY', 'borrowAPY', 'supplyAPYPct', 'borrowAPYPct',
   'utilization', 'utilizationPct', 'allocationPct',
-  'currentAPY', 'bestAPY', 'deltaAPY', 'netAPY', 'cheapestAPY', 'bestNetAPY',
+  'currentAPY', 'bestAPY', 'deltaAPY', 'netAPY', 'cheapestAPY', 'cheapestRate', 'bestNetAPY',
   'bestSupplyAPY', 'bestBorrowAPY', 'totalDeltaAPY',
   'maxLTV', 'liquidationLTV', 'liquidationThreshold', 'ltv', 'targetLTV',
   'performanceFee', 'bufferPercent',
@@ -360,7 +360,7 @@ server.prompt(
       content: {
         type: 'text' as const,
         text: JSON.stringify(
-          await borrowAgainstPosition(getClient(), params['address'], params['borrowToken'], params['collateralToken'], Number(params['targetLTV'])),
+          formatPctFields(await borrowAgainstPosition(getClient(), params['address'], params['borrowToken'], params['collateralToken'], Number(params['targetLTV']))),
         ),
       },
     }],

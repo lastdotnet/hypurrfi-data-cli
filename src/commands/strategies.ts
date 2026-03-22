@@ -3,7 +3,7 @@ import { fetchMarketsData } from './markets.js'
 import { type OutputFormat, print, printCSV, success } from '../output.js'
 import type { MewlerEarnVault } from '../types.js'
 
-import { normalizeSymbol } from '../mcp/utils.js'
+import { normalizeSymbol } from '../utils/normalize.js'
 
 export interface StrategiesOptions {
   asset?: string | undefined

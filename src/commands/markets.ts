@@ -7,7 +7,7 @@ import { fetchAaveOraclePrices, fetchAssetPrices } from '../fetchers/prices.js'
 import { type OutputFormat, print, printCSV, success } from '../output.js'
 import type { EModeCategoryInfo, IsolatedMarket, Market, MarketType, MewlerLendMarket, PooledMarket } from '../types.js'
 
-import { normalizeSymbol } from '../mcp/utils.js'
+import { normalizeSymbol } from '../utils/normalize.js'
 
 const VALID_MARKET_TYPES: ReadonlySet<string> = new Set<MarketType>([
   'pooled',

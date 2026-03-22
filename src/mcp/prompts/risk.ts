@@ -219,6 +219,23 @@ export async function stressTest(client: PublicClient, address: string, token: s
     }
   }
 
+  // Isolated positions
+  for (const p of positionData.isolated.positions) {
+    if (p.healthFactor === null) continue
+    const hasCollateralToken = p.collateralSymbol.toUpperCase() === token.toUpperCase()
+    if (hasCollateralToken) {
+      const newCollateral = p.collateralUSD * dropFactor
+      // Approximation: scales HF linearly with collateral value change.
+      const simulatedHF = p.borrowUSD > 0 ? (newCollateral / p.collateralUSD) * p.healthFactor : null
+      results.push({
+        protocol: `isolated (${p.pairName})`,
+        currentHF: p.healthFactor,
+        simulatedHF,
+        atRisk: simulatedHF !== null && simulatedHF < 1.0,
+      })
+    }
+  }
+
   return {
     intent: 'stress_test',
     params: { address, token, dropPercent },
